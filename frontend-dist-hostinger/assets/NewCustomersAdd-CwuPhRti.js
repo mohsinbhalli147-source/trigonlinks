@@ -1,0 +1,1 @@
+import{u as r,r as s,j as t}from"./index-CS3P8MBX.js";function o(){const e=r();return s.useEffect(()=>{e("/connections/add")},[e]),t.jsx("div",{className:"bg-[#121B2E] border border-[#232D45] rounded-xl p-6",children:t.jsx("div",{className:"text-center text-[#8996AD]",children:"Redirecting to New Connection..."})})}export{o as default};

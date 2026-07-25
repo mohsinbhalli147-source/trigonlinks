@@ -43,7 +43,7 @@ app.use(slowDownMiddleware);
 // Standard middleware
 app.use(helmet());
 app.use(cors({
-  origin: ['https://trigonlinks-pasrur.web.app', 'https://trigonlink.web.app', 'http://localhost:5173', 'http://localhost:3000'],
+  origin: ['https://trigonlink.pakdata.net', 'https://trigonlinks-pasrur.web.app', 'https://trigonlink.web.app', 'http://localhost:5173', 'http://localhost:3000'],
   credentials: true
 }));
 app.use(compression());
