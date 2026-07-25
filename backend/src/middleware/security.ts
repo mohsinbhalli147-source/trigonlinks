@@ -1,0 +1,91 @@
+import rateLimit from 'express-rate-limit';
+import slowDown from 'express-slow-down';
+import { logger } from '../utils/logger';
+
+// General rate limiter for all requests
+export const generalRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // Limit each IP to 1000 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Stricter rate limiter for authentication endpoints
+export const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500, // Limit each IP to 500 auth requests per windowMs (increased for development)
+  message: 'Too many authentication attempts, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiter for API endpoints
+export const apiRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 2000, // Limit each IP to 2000 API requests per windowMs
+  message: 'Too many API requests, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Slow down requests that are approaching the limit
+export const slowDownMiddleware = slowDown({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  delayAfter: 500, // Allow 50 requests per 15 minutes at full speed
+  delayMs: () => 500, // Add 500ms delay per request after delayAfter
+  validate: { delayMs: false }, // Disable warning
+});
+
+// Input sanitization middleware
+export const sanitizeInput = (req: any, res: any, next: any) => {
+  // Sanitize request body
+  if (req.body) {
+    for (const key in req.body) {
+      if (typeof req.body[key] === 'string') {
+        req.body[key] = req.body[key].trim();
+      }
+    }
+  }
+  
+  // Sanitize query parameters
+  if (req.query) {
+    for (const key in req.query) {
+      if (typeof req.query[key] === 'string') {
+        req.query[key] = req.query[key].trim();
+      }
+    }
+  }
+  
+  next();
+};
+
+// Security headers middleware (additional to helmet)
+export const securityHeaders = (req: any, res: any, next: any) => {
+  // Remove X-Powered-By header
+  res.removeHeader('X-Powered-By');
+  
+  // Add additional security headers
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  next();
+};
+
+// Request logging middleware for security monitoring
+export const securityLogger = (req: any, res: any, next: any) => {
+  const startTime = Date.now();
+  
+  // Log request details using logger instead of console
+  logger.info(`[Security] ${req.method} ${req.path} - IP: ${req.ip} - User: ${req.user?.uid || 'anonymous'}`);
+  
+  // Log response using logger instead of console
+  res.on('finish', () => {
+    const duration = Date.now() - startTime;
+    logger.info(`[Security] ${req.method} ${req.path} - Status: ${res.statusCode} - Duration: ${duration}ms`);
+  });
+  
+  next();
+};
