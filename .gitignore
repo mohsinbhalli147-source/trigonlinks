@@ -91,3 +91,13 @@ test-results/
 *.sln
 *.sw?
 
+# Deployment packages
+*.zip
+backend-hostinger.zip
+frontend-dist-hostinger.zip
+
+# Deployment reports
+*_REPORT.md
+*_GUIDE.md
+*_DEPLOYMENT.md
+
