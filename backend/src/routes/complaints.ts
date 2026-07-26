@@ -26,6 +26,14 @@ router.get('/', authorize('admin', 'staff', 'customer'), async (req: AuthRequest
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
 
+    // Validate pagination parameters
+    if (isNaN(pageNum) || pageNum < 1) {
+      return res.status(400).json({ error: 'Invalid page parameter' });
+    }
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+      return res.status(400).json({ error: 'Invalid limit parameter' });
+    }
+
     // For customers, get their customer ID from their uid
     let effectiveCustomerId = customerId as string;
     if (req.user?.role === 'customer') {
@@ -43,9 +51,9 @@ router.get('/', authorize('admin', 'staff', 'customer'), async (req: AuthRequest
     });
 
     res.json(result);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get complaints error:', error);
-    res.status(500).json({ error: 'Failed to fetch complaints' });
+    res.status(500).json({ error: 'Failed to fetch complaints', details: error.message });
   }
 });
 

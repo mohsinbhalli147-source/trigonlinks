@@ -81,6 +81,39 @@ async function seedDatabase() {
       console.log('Real user already exists');
     }
 
+    // Create trigonlinks admin user
+    const { data: trigonlinksData } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', 'trigonlinks@gmail.com')
+      .limit(1);
+    
+    if (!trigonlinksData || trigonlinksData.length === 0) {
+      const hashedPassword = await hashPassword('Trigon786@');
+      const uid = uuidv4();
+      
+      const { error } = await supabase
+        .from('users')
+        .insert({
+          uid,
+          email: 'trigonlinks@gmail.com',
+          password_hash: hashedPassword,
+          name: 'TrigonLinks Admin',
+          role: 'admin',
+          phone: '+92 300 1234571',
+          address: 'Pasrur, Pakistan',
+          is_active: true,
+          email_verified: true,
+          created_at: Date.now(),
+          updated_at: Date.now()
+        });
+
+      if (error) throw error;
+      console.log('TrigonLinks admin user created successfully:', uid);
+    } else {
+      console.log('TrigonLinks admin user already exists');
+    }
+
     // Create staff user
     const { data: staffData } = await supabase
       .from('users')

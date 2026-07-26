@@ -89,8 +89,9 @@ router.get('/:id', authorize('admin', 'staff', 'customer'), async (req: AuthRequ
     // Convert snake_case to camelCase for frontend
     const customerCamel = convertObjectKeysToCamel(customer);
     res.json(customerCamel);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch customer' });
+  } catch (error: any) {
+    console.error('Get customer error:', error);
+    res.status(500).json({ error: 'Failed to fetch customer', details: error.message });
   }
 });
 
