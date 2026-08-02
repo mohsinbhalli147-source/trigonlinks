@@ -9,7 +9,10 @@
     "start": "node dist/index.js",
     "lint": "eslint . --ext .ts",
     "seed": "ts-node src/seed.ts",
-    "migrate-firestore": "ts-node scripts/migrate-firestore-to-postgres.ts"
+    "migrate-firestore": "ts-node scripts/migrate-firestore-to-postgres.ts",
+    "update-customers": "ts-node scripts/update-customers.ts",
+    "generate-bills": "ts-node scripts/generate-all-bills.ts",
+    "generate-bills-force": "ts-node scripts/generate-all-bills.ts --force"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",
@@ -17,6 +20,7 @@
     "bcryptjs": "^2.4.3",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
+    "csv-parse": "^7.0.1",
     "date-fns": "^3.0.0",
     "dotenv": "^16.3.1",
     "exceljs": "^4.4.0",
@@ -28,12 +32,12 @@
     "googleapis": "^173.0.0",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
-    "jspdf": "^2.5.1",
-    "jspdf-autotable": "^3.8.1",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "morgan": "^1.10.0",
-    "nodemailer": "^6.9.7",
+    "nodemailer": "^9.0.3",
     "pg": "^8.11.3",
-    "uuid": "^9.0.1"
+    "uuid": "^11.1.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

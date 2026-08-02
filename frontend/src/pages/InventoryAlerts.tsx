@@ -34,7 +34,7 @@ export default function InventoryAlerts() {
     setError('');
     const result = await inventoryApi.getAlerts();
     if (result.success) {
-      setItems(result.data || []);
+      setItems(Array.isArray(result.data) ? result.data : []);
     } else {
       setError(result.error || 'Unable to load inventory alerts.');
     }

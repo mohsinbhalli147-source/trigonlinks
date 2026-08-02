@@ -1,0 +1,15 @@
+# This file contains sensitive information for signing the Android app
+# DO NOT commit this file to version control
+# Copy this file to key.properties and fill in your actual values
+
+# Path to your keystore file (relative to this file or absolute path)
+storeFile=/path/to/your/keystore.jks
+
+# Keystore password
+storePassword=your_keystore_password
+
+# Key alias
+keyAlias=your_key_alias
+
+# Key password
+keyPassword=your_key_password

@@ -36,14 +36,25 @@ const PORT = process.env.PORT || 5000;
 // Security middleware
 app.use(securityHeaders);
 app.use(securityLogger);
-app.use(sanitizeInput);
+// app.use(sanitizeInput); // Temporarily disabled for testing
 app.use(generalRateLimiter);
 app.use(slowDownMiddleware);
 
 // Standard middleware
 app.use(helmet());
 app.use(cors({
-  origin: ['https://trigonlink.pakdata.net', 'https://trigonlinks-pasrur.web.app', 'https://trigonlink.web.app', 'http://localhost:5173', 'http://localhost:3000'],
+  origin: [
+    'https://trigonlink.pakdata.net',
+    'https://trigonlinks-pasrur.web.app',
+    'https://trigonlink.web.app',
+    'https://lightgreen-rhinoceros-358548.hostingersite.com',
+    'http://localhost:3000',
+    'http://localhost:3005',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3005',
+    'http://127.0.0.1:5173'
+  ],
   credentials: true
 }));
 app.use(compression());

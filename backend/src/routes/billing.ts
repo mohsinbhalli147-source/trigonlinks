@@ -93,7 +93,8 @@ router.get('/payments', authorize('admin', 'staff'), async (req, res) => {
 // Generate monthly bills for all customers (admin only)
 router.post('/generate-monthly', authorize('admin'), async (req: AuthRequest, res) => {
   try {
-    const result = await generateMonthlyBills(req.user?.uid || '');
+    const { forceAll } = req.body;
+    const result = await generateMonthlyBills(req.user?.uid || '', forceAll);
     res.json(result);
   } catch (error) {
     console.error('Generate monthly bills error:', error);

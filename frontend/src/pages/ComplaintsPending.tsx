@@ -28,7 +28,7 @@ export default function ComplaintsPending() {
   const fetchPendingComplaints = async () => {
     const result = await complaintsApi.getAll({ status: 'pending', limit: 100 });
     if (result.success) {
-      setComplaints(result.data?.data || result.data?.complaints || []);
+      setComplaints(Array.isArray(result.data?.data) ? result.data.data : Array.isArray(result.data?.complaints) ? result.data.complaints : Array.isArray(result.data) ? result.data : []);
     }
     setLoading(false);
   };
@@ -101,11 +101,11 @@ export default function ComplaintsPending() {
                 Start Working
               </button>
               <button
-                onClick={() => handleUpdateStatus(complaint.id, 'solved')}
+                onClick={() => handleUpdateStatus(complaint.id, 'resolved')}
                 className="flex-1 px-3 py-2 bg-[#14E8B4] text-[#04231B] rounded-lg hover:bg-[#20F0C0] transition-colors text-sm flex items-center justify-center gap-2"
               >
                 <CheckCircle className="w-3 h-3" />
-                Mark Solved
+                Mark Resolved
               </button>
             </div>
           </div>

@@ -86,7 +86,36 @@ export default function AreaRevenue() {
   const avgMonthlyRevenue = revenueData.length > 0 ? totalNetRevenue / revenueData.filter(r => r.collected > 0).length : 0;
 
   const handleExport = () => {
-    toast.info('Export feature coming soon');
+    if (!revenueData.length || !area) return;
+    
+    const content = `
+AREA REVENUE REPORT - ${area.name} (${selectedYear})
+===============================================
+Total Collected: Rs. ${totalCollected.toLocaleString()}
+Total Pending: Rs. ${totalPending.toLocaleString()}
+Total Expenses: Rs. ${totalExpenses.toLocaleString()}
+Net Revenue: Rs. ${totalNetRevenue.toLocaleString()}
+Average Monthly Revenue: Rs. ${Math.round(avgMonthlyRevenue).toLocaleString()}
+
+MONTHLY BREAKDOWN:
+==================
+${revenueData.map(r => {
+  const total = r.collected + r.pending;
+  const rate = total > 0 ? Math.round((r.collected / total) * 100) : 0;
+  return `${r.month}: Collected Rs. ${r.collected.toLocaleString()}, Pending Rs. ${r.pending.toLocaleString()}, Expenses Rs. ${r.expenses.toLocaleString()}, Net Rs. ${r.netRevenue.toLocaleString()}, Collection Rate ${rate}%`;
+}).join('\n')}
+    `;
+    
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `area-revenue-${area.name}-${selectedYear}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Revenue report exported successfully');
   };
 
   if (loading) {

@@ -49,8 +49,6 @@ export default function Dashboard() {
   };
 
   const refreshDashboardData = async () => {
-    if (user?.role === 'customer') return;
-
     setIsRefreshing(true);
     try {
       await loadDashboardStage('all');
@@ -76,6 +74,10 @@ export default function Dashboard() {
   const loadDashboardData = async () => {
     if (user?.role === 'customer') {
       return; // Customer dashboard handles its own data
+    if (user?.role === 'customer') {
+      return; // Customer dashboard handles its own data
+    }
+
     }
 
     setLoading(true);
@@ -97,12 +99,7 @@ export default function Dashboard() {
     } else {
       newExpanded.add(sectionName);
     }
-    setExpandedSections(newExpanded);
   };
-
-  if (user?.role === 'customer') {
-    return <CustomerDashboard />;
-  }
 
   if (loading && !summaryLoaded) {
     return (

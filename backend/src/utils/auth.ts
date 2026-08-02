@@ -7,6 +7,11 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secre
 const JWT_EXPIRES_IN = '1h';
 const JWT_REFRESH_EXPIRES_IN = '7d';
 
+// Generate 6-digit OTP
+export const generateOTP = (): string => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
 export interface TokenPayload {
   uid: string;
   email: string;
@@ -68,6 +73,29 @@ export const comparePassword = async (password: string, hashedPassword: string):
 // Generate random token for password reset
 export const generateResetToken = (): string => {
   return crypto.randomBytes(32).toString('hex');
+};
+
+// Store OTP in memory (in production, use Redis or database)
+const otpStore = new Map<string, { otp: string; expiresAt: number; email: string }>();
+
+export const storeOTP = (email: string, otp: string): void => {
+  const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+  otpStore.set(email, { otp, expiresAt, email });
+};
+
+export const verifyOTP = (email: string, otp: string): boolean => {
+  const stored = otpStore.get(email);
+  if (!stored) return false;
+  
+  if (Date.now() > stored.expiresAt) {
+    otpStore.delete(email);
+    return false;
+  }
+  
+  if (stored.otp !== otp) return false;
+  
+  otpStore.delete(email);
+  return true;
 };
 
 // Generate verification token

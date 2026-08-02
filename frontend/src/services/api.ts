@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://trigonlink.pakdata.net/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 let isRefreshing = false;
 let failedQueue: Array<{
@@ -146,7 +146,7 @@ export const authApi = {
   logout: (refreshToken: string) => apiService.post('/api/auth/logout', { refreshToken }),
   refresh: (refreshToken: string) => apiService.post('/api/auth/refresh', { refreshToken }),
   forgotPassword: (email: string) => apiService.post('/api/auth/forgot-password', { email }),
-  resetPassword: (token: string, password: string) => apiService.post('/api/auth/reset-password', { token, password }),
+  resetPassword: (email: string, otp: string, password: string) => apiService.post('/api/auth/reset-password', { email, otp, password }),
   changePassword: (currentPassword: string, newPassword: string) => apiService.post('/api/auth/change-password', { currentPassword, newPassword }),
 };
 
@@ -288,7 +288,7 @@ export const reportsApi = {
 
   exportPDF: (type: string, params?: any) => {
     // For file downloads, we need to use the raw axios instance
-    const url = `${import.meta.env.VITE_API_BASE_URL || 'https://trigonlink.pakdata.net/api'}/api/reports/export/${type}/pdf`;
+    const url = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/api/reports/export/${type}/pdf`;
     const queryString = params ? '?' + new URLSearchParams(params).toString() : '';
     return window.fetch(url + queryString, {
       headers: {
@@ -297,7 +297,7 @@ export const reportsApi = {
     }).then(response => response.blob());
   },
   exportExcel: (type: string, params?: any) => {
-    const url = `${import.meta.env.VITE_API_BASE_URL || 'https://trigonlink.pakdata.net/api'}/api/reports/export/${type}/excel`;
+    const url = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/api/reports/export/${type}/excel`;
     const queryString = params ? '?' + new URLSearchParams(params).toString() : '';
     return window.fetch(url + queryString, {
       headers: {

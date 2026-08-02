@@ -8,7 +8,7 @@ const supabase = getSupabaseClient();
 
 export interface NotificationData {
   user_id: string;
-  type: 'info' | 'warning' | 'error' | 'success' | 'reminder';
+  type: 'bill' | 'payment' | 'connection' | 'complaint' | 'announcement' | 'system' | 'info' | 'warning' | 'error' | 'success' | 'reminder';
   title: string;
   message: string;
   action_url?: string;

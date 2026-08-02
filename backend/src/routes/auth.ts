@@ -5,7 +5,10 @@ import {
   comparePassword, 
   generateAuthTokens, 
   verifyRefreshToken,
-  generateResetToken 
+  generateResetToken,
+  generateOTP,
+  storeOTP,
+  verifyOTP
 } from '../utils/auth';
 import { authenticate, AuthRequest, authorize } from '../middleware/auth';
 import { cache } from '../utils/cache';
@@ -255,7 +258,7 @@ router.post('/refresh', async (req, res) => {
     console.log('Refresh token valid, generating new tokens');
 
     // Get user data from either users or customers collection
-    let user = await usersRepo.findByUid(payload.uid);
+    const user = await usersRepo.findByUid(payload.uid);
     let userData;
     if (!user) {
       const { data: customerData, error: customerError } = await supabase
@@ -316,7 +319,7 @@ router.post('/logout', async (req, res) => {
   }
 });
 
-// Request password reset
+// Request password reset (send OTP)
 router.post('/forgot-password', [
   body('email').isEmail().normalizeEmail(),
 ], async (req, res) => {
@@ -332,35 +335,41 @@ router.post('/forgot-password', [
     const user = await usersRepo.findByEmail(email);
     if (!user) {
       // Don't reveal if user exists
-      return res.json({ message: 'If the email exists, a reset link will be sent' });
+      return res.json({ message: 'If the email exists, an OTP will be sent' });
     }
 
-    // Generate reset token
-    const resetToken = generateResetToken();
-    const resetTokenExpiry = Date.now() + 3600000; // 1 hour
+    // Generate OTP
+    const otp = generateOTP();
 
-    // Store reset token
-    await supabase
-      .from('password_reset_tokens')
-      .insert({
-        token: resetToken,
-        user_id: user.id,
-        created_at: Date.now(),
-        expires_at: resetTokenExpiry
-      });
+    // Store OTP
+    storeOTP(email, otp);
 
     if (isEmailConfigured()) {
       try {
-        await sendPasswordResetEmail(email, resetToken);
+        await sendPasswordResetEmail(email, otp);
+        return res.json({ 
+          message: 'OTP sent to email',
+          otp: process.env.NODE_ENV !== 'production' ? otp : undefined // Show OTP in dev mode
+        });
       } catch (mailError: any) {
         logger.error('Password reset email send failure:', mailError);
+        // Return OTP in development mode if email fails
+        return res.json({ 
+          message: 'Email service failed. Development mode OTP: ' + otp,
+          otp: otp
+        });
       }
     } else {
       logger.warn('Password reset requested but email service is not configured.');
+      // Return OTP in development mode if email not configured
+      return res.json({ 
+        message: 'Email service not configured. Development mode OTP: ' + otp,
+        otp: otp
+      });
     }
 
     res.json({ 
-      message: 'If the email exists, a reset link will be sent.'
+      message: 'If the email exists, an OTP will be sent'
     });
   } catch (error: any) {
     logger.error('Forgot password error:', error);
@@ -368,9 +377,10 @@ router.post('/forgot-password', [
   }
 });
 
-// Reset password
+// Reset password with OTP
 router.post('/reset-password', [
-  body('token').notEmpty(),
+  body('email').isEmail().normalizeEmail(),
+  body('otp').notEmpty(),
   body('password').isLength({ min: 6 }),
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -379,46 +389,49 @@ router.post('/reset-password', [
   }
 
   try {
-    const { token, password } = req.body;
+    const { email, otp, password } = req.body;
 
-    // Find valid reset token
-    const { data: tokenData, error: tokenError } = await supabase
-      .from('password_reset_tokens')
-      .select('*')
-      .eq('token', token)
-      .limit(1);
+    console.log('Reset password request:', { email, otp: otp ? '***' : 'missing', password: password ? '***' : 'missing' });
 
-    if (tokenError || !tokenData || tokenData.length === 0) {
-      return res.status(400).json({ error: 'Invalid or expired reset token' });
+    // Verify OTP
+    const otpValid = verifyOTP(email, otp);
+    console.log('OTP verification result:', otpValid);
+    
+    if (!otpValid) {
+      return res.status(400).json({ error: 'Invalid or expired OTP' });
     }
 
-    const resetToken = tokenData[0];
-
-    // Check if token is expired
-    if (resetToken.expires_at < Date.now()) {
-      await supabase.from('password_reset_tokens').delete().eq('id', resetToken.id);
-      return res.status(400).json({ error: 'Reset token expired' });
+    // Find user by email
+    const user = await usersRepo.findByEmail(email);
+    if (!user) {
+      console.log('User not found for email:', email);
+      return res.status(404).json({ error: 'User not found' });
     }
+
+    console.log('User found, updating password for user ID:', user.id);
 
     // Hash new password
     const hashedPassword = await hashPassword(password);
 
     // Update user password
-    await supabase
+    const { error: updateError } = await supabase
       .from('users')
       .update({ password_hash: hashedPassword, updated_at: Date.now() })
-      .eq('id', resetToken.user_id);
+      .eq('id', user.id);
 
-    // Delete reset token
-    await supabase.from('password_reset_tokens').delete().eq('id', resetToken.id);
+    if (updateError) {
+      console.error('Password update error:', updateError);
+      throw updateError;
+    }
 
     // Delete all refresh tokens for this user
-    await supabase.from('refresh_tokens').delete().eq('user_id', resetToken.user_id);
+    await supabase.from('refresh_tokens').delete().eq('user_id', user.id);
 
     res.json({ message: 'Password reset successfully' });
   } catch (error: any) {
+    console.error('Reset password error:', error);
     logger.error('Reset password error:', error);
-    res.status(500).json({ error: 'Failed to reset password' });
+    res.status(500).json({ error: 'Failed to reset password', details: error.message });
   }
 });
 

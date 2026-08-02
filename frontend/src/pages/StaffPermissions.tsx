@@ -61,7 +61,7 @@ export default function StaffPermissions() {
           roleMap[member.role] = [];
         }
         // Add member's permissions if available
-        if (member.permissions) {
+        if (member.permissions && Array.isArray(member.permissions)) {
           roleMap[member.role] = [...new Set([...roleMap[member.role], ...member.permissions])];
         }
       });

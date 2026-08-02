@@ -1,36 +1,27 @@
 import { test, expect } from '@playwright/test';
+import { login } from './utils/test-helpers';
 
 test.describe('Comprehensive Authentication Testing', () => {
   test('should login with valid admin credentials', async ({ page }) => {
-    await page.goto('/login');
-    
-    // Fill in admin credentials
-    await page.fill('input[type="email"]', 'mohsinbhalli147@gmail.com');
-    await page.fill('input[type="password"]', 'Zimal@123');
-    await page.click('button[type="submit"]');
-    
-    // Wait for navigation to dashboard
-    await page.waitForURL('/', { timeout: 15000 });
-    
-    // Verify we're on dashboard
-    await expect(page).toHaveURL('/');
+    await login(page);
+    await expect(page).toHaveURL(/\/$/, { timeout: 15000 });
     await expect(page.locator('text=TRIGONLINKS')).toBeVisible();
   });
 
   test('should show error with invalid credentials', async ({ page }) => {
     await page.goto('/login');
     
-    // Fill in invalid credentials
     await page.fill('input[type="email"]', 'invalid@test.com');
     await page.fill('input[type="password"]', 'wrongpassword');
+    const loginResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/auth/login') &&
+        response.request().method() === 'POST',
+      { timeout: 15000 }
+    );
     await page.click('button[type="submit"]');
-    
-    // Wait for error message
-    await page.waitForTimeout(2000);
-    
-    // Verify error is shown - check for any error message
-    const errorElement = page.locator('.bg-\\[\\#F5514B\\]/10, text=/failed/i, text=/error/i, text=/invalid/i');
-    await expect(errorElement.first()).toBeVisible({ timeout: 5000 });
+    await expect(await loginResponse).toHaveProperty('status', 401);
+    await expect(page).toHaveURL(/\/login$/, { timeout: 5000 });
   });
 
   test('should handle customer login', async ({ page }) => {
@@ -49,12 +40,8 @@ test.describe('Comprehensive Authentication Testing', () => {
   });
 
   test('should logout successfully', async ({ page }) => {
-    // First login
-    await page.goto('/login');
-    await page.fill('input[type="email"]', 'mohsinbhalli147@gmail.com');
-    await page.fill('input[type="password"]', 'Zimal@123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { timeout: 15000 });
+    await login(page);
+    await expect(page).toHaveURL(/\/$/, { timeout: 15000 });
     
     // Find and click logout button
     const logoutButton = page.locator('button:has-text("Logout"), button:has-text("Sign Out")');
@@ -68,17 +55,12 @@ test.describe('Comprehensive Authentication Testing', () => {
   test('should redirect to login when accessing protected route without auth', async ({ page }) => {
     await page.goto('/customers/all');
     
-    // Should redirect to login
-    await page.waitForURL('/login', { timeout: 5000 });
-    await expect(page).toHaveURL('/login');
+    await expect(page).toHaveURL(/\/login$/, { timeout: 5000 });
   });
 
   test('should store tokens in localStorage after login', async ({ page }) => {
-    await page.goto('/login');
-    await page.fill('input[type="email"]', 'mohsinbhalli147@gmail.com');
-    await page.fill('input[type="password"]', 'Zimal@123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { timeout: 15000 });
+    await login(page);
+    await expect(page).toHaveURL(/\/$/, { timeout: 15000 });
     
     // Check localStorage for tokens
     const authToken = await page.evaluate(() => localStorage.getItem('authToken'));

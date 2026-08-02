@@ -2,9 +2,12 @@ import express from 'express';
 import { body, validationResult } from 'express-validator';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { AnnouncementsRepository } from '../repositories/AnnouncementsRepository';
+import { getSupabaseClient } from '../database/client';
+import { createBulkNotifications } from '../services/notifications';
 
 const router = express.Router();
 const announcementsRepo = new AnnouncementsRepository();
+const supabase = getSupabaseClient();
 
 // Apply authentication to all routes
 router.use(authenticate);
@@ -73,6 +76,34 @@ router.post('/', authorize('admin'), [
     };
     
     const announcement = await announcementsRepo.createAnnouncement(announcementData);
+    
+    // Create notifications for all target users
+    let query = supabase.from('users').select('id').eq('is_active', true);
+    
+    if (req.body.target === 'staff') {
+      query = query.eq('role', 'staff');
+    } else if (req.body.target === 'admin') {
+      query = query.eq('role', 'admin');
+    } else if (req.body.target === 'customer') {
+      query = query.eq('role', 'customer');
+    }
+    
+    const { data: users } = await query;
+    if (users && users.length > 0) {
+      const userIds = users.map(u => u.id);
+      await createBulkNotifications(userIds, {
+        type: 'announcement',
+        title: req.body.title,
+        message: req.body.message,
+        action_url: '/announcements',
+        action_text: 'View Details',
+        related_id: announcement.id,
+        related_type: 'announcement',
+        is_read: false,
+        expires_at: Date.now() + (7 * 24 * 60 * 60 * 1000),
+      });
+    }
+    
     res.json(announcement);
   } catch (error) {
     res.status(500).json({ error: 'Failed to create announcement' });

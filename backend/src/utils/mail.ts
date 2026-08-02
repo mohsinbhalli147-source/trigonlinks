@@ -46,26 +46,24 @@ export const sendEmail = async (options: nodemailer.SendMailOptions) => {
   });
 };
 
-export const sendPasswordResetEmail = async (email: string, token: string) => {
+export const sendPasswordResetEmail = async (email: string, otp: string) => {
   if (!transporter) {
     throw new Error('Email service is not configured');
   }
 
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-  const resetLink = `${frontendUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
-
   const html = `
     <p>Hello,</p>
-    <p>We received a request to reset your TRIGONLINKS account password. Click the link below to reset it:</p>
-    <p><a href="${resetLink}">${resetLink}</a></p>
+    <p>We received a request to reset your TRIGONLINKS account password.</p>
+    <p><strong>Your OTP code is: ${otp}</strong></p>
+    <p>This OTP will expire in 10 minutes.</p>
     <p>If you did not request this, you can safely ignore this email.</p>
     <p>Thanks,<br/>TRIGONLINKS Support</p>
   `;
 
   await sendEmail({
     to: email,
-    subject: 'TRIGONLINKS Password Reset Request',
+    subject: 'TRIGONLINKS Password Reset OTP',
     html,
-    text: `Use this link to reset your password: ${resetLink}`,
+    text: `Your OTP code is: ${otp}. This OTP will expire in 10 minutes.`,
   });
 };

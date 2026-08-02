@@ -33,11 +33,18 @@ export async function login(page: Page, user: TestUser = testUsers[0]) {
   
   await page.fill('input[type="email"]', user.email);
   await page.fill('input[type="password"]', user.password);
+  const loginResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes('/api/auth/login') &&
+      response.request().method() === 'POST',
+    { timeout: 15000 }
+  );
   await page.click('button[type="submit"]');
+  await loginResponse;
   
   // Wait for either URL change or dashboard to appear
   await Promise.race([
-    page.waitForURL('/', { timeout: 15000 }),
+    page.waitForURL(/\/$/, { timeout: 15000 }),
     page.waitForSelector('text=TRIGONLINKS', { timeout: 15000 }),
     page.waitForSelector('text=Dashboard', { timeout: 15000 })
   ]).catch(() => {

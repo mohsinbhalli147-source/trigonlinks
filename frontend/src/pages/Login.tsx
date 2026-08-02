@@ -39,20 +39,6 @@ export default function Login() {
     }
   };
 
-  const handleCustomerLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      await customerLogin(username, cnic);
-      navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Invalid Username or CNIC');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0A0F1C]">
@@ -65,29 +51,6 @@ export default function Login() {
           <p className="text-sm text-[#6E7A94] mt-1">ISP Management Portal</p>
         </div>
 
-        {/* Tabs */}
-        <div className="flex bg-[#0A0F1C] rounded-lg p-1 mb-6">
-          <button
-            onClick={() => { setActiveTab('admin'); setError(''); }}
-            className={`flex-1 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
-              activeTab === 'admin'
-                ? 'bg-[#1B2540] text-[#14E8B4] shadow-sm'
-                : 'text-[#8996AD] hover:text-[#EAF0FB]'
-            }`}
-          >
-            Admin / Staff
-          </button>
-          <button
-            onClick={() => { setActiveTab('customer'); setError(''); }}
-            className={`flex-1 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
-              activeTab === 'customer'
-                ? 'bg-[#1B2540] text-[#14E8B4] shadow-sm'
-                : 'text-[#8996AD] hover:text-[#EAF0FB]'
-            }`}
-          >
-            Customer Login
-          </button>
-        </div>
 
         {error && (
           <div className="mb-6 p-3 bg-[#F5514B]/10 border border-[#F5514B]/50 rounded-lg text-sm text-[#F5514B] text-center">
@@ -96,86 +59,47 @@ export default function Login() {
         )}
 
         {/* Admin Form */}
-        {activeTab === 'admin' && (
-          <form onSubmit={handleAdminLogin} className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div>
-              <label className="block text-sm font-medium text-[#8996AD] mb-2">Email Address</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 bg-[#1B2540] border border-[#232D45] rounded-lg text-[#EAF0FB] focus:outline-none focus:border-[#14E8B4] transition-colors"
-                placeholder="Email address"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#8996AD] mb-2">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 bg-[#1B2540] border border-[#232D45] rounded-lg text-[#EAF0FB] focus:outline-none focus:border-[#14E8B4] transition-colors"
-                placeholder="••••••••"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2.5 mt-2 bg-[#14E8B4] text-[#04231B] font-semibold rounded-lg hover:bg-[#20F0C0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Signing in...' : 'Sign In as Admin'}
-            </button>
-          </form>
-        )}
-
-        {/* Customer Form */}
-        {activeTab === 'customer' && (
-          <form onSubmit={handleCustomerLogin} className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div>
-              <label className="block text-sm font-medium text-[#8996AD] mb-2">Username</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-4 py-2 bg-[#1B2540] border border-[#232D45] rounded-lg text-[#EAF0FB] focus:outline-none focus:border-[#14E8B4] transition-colors"
-                placeholder="e.g. ali_khan"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#8996AD] mb-2">CNIC Number</label>
-              <input
-                type="text"
-                value={cnic}
-                onChange={(e) => setCnic(e.target.value)}
-                className="w-full px-4 py-2 bg-[#1B2540] border border-[#232D45] rounded-lg text-[#EAF0FB] focus:outline-none focus:border-[#14E8B4] transition-colors"
-                placeholder="XXXXX-XXXXXXX-X"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2.5 mt-2 bg-[#4C8DFF] text-white font-semibold rounded-lg hover:bg-[#3A78E0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Signing in...' : 'Sign In to Portal'}
-            </button>
-          </form>
-        )}
-
-        {activeTab === 'admin' && (
-          <div className="mt-4 text-right">
-            <button
-              type="button"
-              onClick={() => navigate('/forgot-password')}
-              className="text-sm text-[#4C8DFF] hover:text-[#7AB6FF] transition-colors"
-            >
-              Forgot Password?
-            </button>
+        <form onSubmit={handleAdminLogin} className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
+          <div>
+            <label className="block text-sm font-medium text-[#8996AD] mb-2">Email Address</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-2 bg-[#1B2540] border border-[#232D45] rounded-lg text-[#EAF0FB] focus:outline-none focus:border-[#14E8B4] transition-colors"
+              placeholder="Email address"
+              required
+            />
           </div>
-        )}
+          <div>
+            <label className="block text-sm font-medium text-[#8996AD] mb-2">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-2 bg-[#1B2540] border border-[#232D45] rounded-lg text-[#EAF0FB] focus:outline-none focus:border-[#14E8B4] transition-colors"
+              placeholder="••••••••"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2.5 mt-2 bg-[#14E8B4] text-[#04231B] font-semibold rounded-lg hover:bg-[#20F0C0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
+
+        <div className="mt-4 text-right">
+          <button
+            type="button"
+            onClick={() => navigate('/forgot-password')}
+            className="text-sm text-[#4C8DFF] hover:text-[#7AB6FF] transition-colors"
+          >
+            Forgot Password?
+          </button>
+        </div>
 
         <p className="text-center text-xs text-[#5C6B85] mt-6">
           v1.0 · Professional ISP ERP System

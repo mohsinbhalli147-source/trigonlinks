@@ -18,7 +18,7 @@ BEGIN
     END IF;
     
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'connection_status') THEN
-        CREATE TYPE connection_status AS ENUM ('pending', 'approved', 'rejected', 'in-progress', 'completed', 'on-hold', 'inactive');
+        CREATE TYPE connection_status AS ENUM ('pending', 'approved', 'rejected', 'in-progress', 'completed', 'on-hold', 'inactive', 'suspended');
     END IF;
     
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'invoice_status') THEN
@@ -46,7 +46,7 @@ BEGIN
     END IF;
     
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'notification_type') THEN
-        CREATE TYPE notification_type AS ENUM ('bill', 'payment', 'connection', 'complaint', 'announcement', 'system');
+        CREATE TYPE notification_type AS ENUM ('bill', 'payment', 'connection', 'complaint', 'announcement', 'system', 'info', 'warning', 'error', 'success', 'reminder');
     END IF;
 END $$;
 

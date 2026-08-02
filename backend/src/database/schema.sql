@@ -8,14 +8,14 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Create enum types
 CREATE TYPE user_role AS ENUM ('admin', 'staff', 'customer', 'manager', 'technician', 'collector', 'sales', 'support');
 CREATE TYPE account_status AS ENUM ('active', 'inactive', 'suspended', 'on-leave', 'pending');
-CREATE TYPE connection_status AS ENUM ('pending', 'approved', 'rejected', 'in-progress', 'completed', 'on-hold', 'inactive');
+CREATE TYPE connection_status AS ENUM ('pending', 'approved', 'rejected', 'in-progress', 'completed', 'on-hold', 'inactive', 'suspended');
 CREATE TYPE invoice_status AS ENUM ('unpaid', 'partial', 'paid', 'overdue');
 CREATE TYPE complaint_status AS ENUM ('pending', 'in-progress', 'resolved', 'rejected');
 CREATE TYPE complaint_priority AS ENUM ('low', 'medium', 'high', 'urgent');
 CREATE TYPE payment_status AS ENUM ('pending', 'completed', 'failed', 'refunded');
 CREATE TYPE approval_status AS ENUM ('pending', 'approved', 'rejected');
 CREATE TYPE transaction_type AS ENUM ('in', 'out');
-CREATE TYPE notification_type AS ENUM ('bill', 'payment', 'connection', 'complaint', 'announcement', 'system');
+CREATE TYPE notification_type AS ENUM ('bill', 'payment', 'connection', 'complaint', 'announcement', 'system', 'info', 'warning', 'error', 'success', 'reminder');
 
 -- Users table (replaces Firestore 'users' collection)
 CREATE TABLE users (
@@ -507,7 +507,7 @@ DECLARE
     seq_part INTEGER;
 BEGIN
     date_part := TO_CHAR(CURRENT_TIMESTAMP, 'YYYYMM');
-    SELECT COALESCE(MAX(CAST(SUBSTRING(invoice_number FROM 9) AS INTEGER)), 0) + 1
+    SELECT COALESCE(MAX(CAST(SPLIT_PART(invoice_number, '-', 3) AS INTEGER)), 0) + 1
     INTO seq_part
     FROM invoices
     WHERE invoice_number LIKE 'INV-' || date_part || '-%';

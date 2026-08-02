@@ -6,6 +6,7 @@ import { toast } from '../components/Toast';
 
 interface Customer {
   id: string;
+  uid?: string;
   name: string;
   fatherName?: string;
   father_name?: string;
@@ -81,26 +82,7 @@ export default function CustomerProfile() {
     try {
       const result = await customersApi.getById(id);
       if (result.success && result.data) {
-        const data = result.data;
-        setCustomer({
-          ...data,
-          fatherName: data.fatherName || data.father_name || '',
-          username: data.username || '',
-          phone: data.mobile || data.phone || '',
-          installationDate: data.install_date || data.installationDate,
-          billingDate: data.billing_date || data.billingDate,
-          monthlyFee: data.fee || data.monthlyFee || 0,
-          emergencyContact: data.emergencyContact || data.emergency_contact || '',
-          iptvEnabled: data.iptv_enabled || data.iptvEnabled || false,
-          iptvBoxNumber: data.iptv_box_number || data.iptvBoxNumber || '',
-          iptvBoxPrice: data.iptv_box_price || data.iptvBoxPrice,
-          iptvInstallationCharges: data.iptv_installation_charges || data.iptvInstallationCharges,
-          iptvMonthlyCharges: data.iptv_monthly_charges || data.iptvMonthlyCharges || 0,
-          liveIpEnabled: data.live_ip_enabled || data.liveIpEnabled || false,
-          liveIpAddress: data.live_ip_address || data.liveIpAddress || '',
-          liveIpMonthlyFee: data.live_ip_monthly_fee || data.liveIpMonthlyFee || 0,
-          liveIpInstallationFee: data.live_ip_installation_fee || data.liveIpInstallationFee
-        });
+        setCustomer(result.data);
       } else {
         setError(result.error || 'Failed to load customer');
       }
@@ -241,6 +223,14 @@ export default function CustomerProfile() {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="bg-[#1B2540] p-4 rounded-lg">
+              <p className="text-xs text-[#5C6B85] mb-1">Customer ID</p>
+              <p className="text-sm font-medium text-[#EAF0FB] font-mono">{customer.id}</p>
+            </div>
+            <div className="bg-[#1B2540] p-4 rounded-lg">
+              <p className="text-xs text-[#5C6B85] mb-1">UID</p>
+              <p className="text-sm font-medium text-[#EAF0FB] font-mono">{customer.uid || 'N/A'}</p>
+            </div>
+            <div className="bg-[#1B2540] p-4 rounded-lg">
               <p className="text-xs text-[#5C6B85] mb-1">Full Name</p>
               <p className="text-sm font-medium text-[#EAF0FB]">{customer.name}</p>
             </div>
@@ -256,7 +246,7 @@ export default function CustomerProfile() {
               <p className="text-xs text-[#5C6B85] mb-1">Phone</p>
               <p className="text-sm font-medium text-[#EAF0FB] flex items-center gap-2">
                 <Phone className="w-4 h-4" />
-                {customer.phone || customer.mobile || 'N/A'}
+                {customer.mobile || customer.phone || 'N/A'}
               </p>
             </div>
             <div className="bg-[#1B2540] p-4 rounded-lg">
@@ -321,7 +311,7 @@ export default function CustomerProfile() {
               <p className="text-xs text-[#5C6B85] mb-1">Billing Date</p>
               <p className="text-sm font-medium text-[#EAF0FB] flex items-center gap-2">
                 <Clock className="w-4 h-4" />
-                {customer.billingDate ? `Every month on ${customer.billingDate}` : 'N/A'}
+                {customer.billingDate ? `Day ${customer.billingDate} of each month` : 'N/A'}
               </p>
             </div>
             <div className="bg-[#1B2540] p-4 rounded-lg">
@@ -357,19 +347,19 @@ export default function CustomerProfile() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="bg-[#1B2540] p-4 rounded-lg">
                 <p className="text-xs text-[#5C6B85] mb-1">IPTV Box Number</p>
-                <p className="text-sm font-medium text-[#EAF0FB]">{customer.iptvBoxNumber || customer.iptv_box_number || 'N/A'}</p>
+                <p className="text-sm font-medium text-[#EAF0FB]">{customer.iptvBoxNumber || 'N/A'}</p>
               </div>
               <div className="bg-[#1B2540] p-4 rounded-lg">
                 <p className="text-xs text-[#5C6B85] mb-1">Box Price</p>
-                <p className="text-sm font-medium text-[#EAF0FB]">Rs. {customer.iptvBoxPrice || customer.iptv_box_price || 0}</p>
+                <p className="text-sm font-medium text-[#EAF0FB]">Rs. {customer.iptvBoxPrice || 0}</p>
               </div>
               <div className="bg-[#1B2540] p-4 rounded-lg">
                 <p className="text-xs text-[#5C6B85] mb-1">Installation Charges</p>
-                <p className="text-sm font-medium text-[#EAF0FB]">Rs. {customer.iptvInstallationCharges || customer.iptv_installation_charges || 0}</p>
+                <p className="text-sm font-medium text-[#EAF0FB]">Rs. {customer.iptvInstallationCharges || 0}</p>
               </div>
               <div className="bg-[#1B2540] p-4 rounded-lg">
                 <p className="text-xs text-[#5C6B85] mb-1">Monthly Charges</p>
-                <p className="text-sm font-medium text-[#14E8B4]">Rs. {customer.iptvMonthlyCharges || customer.iptv_monthly_charges || 0}</p>
+                <p className="text-sm font-medium text-[#14E8B4]">Rs. {customer.iptvMonthlyCharges || 0}</p>
               </div>
             </div>
           </div>
@@ -385,15 +375,15 @@ export default function CustomerProfile() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="bg-[#1B2540] p-4 rounded-lg">
                 <p className="text-xs text-[#5C6B85] mb-1">IP Address</p>
-                <p className="text-sm font-medium text-[#EAF0FB]">{customer.liveIpAddress || customer.live_ip_address || 'N/A'}</p>
+                <p className="text-sm font-medium text-[#EAF0FB]">{customer.liveIpAddress || 'N/A'}</p>
               </div>
               <div className="bg-[#1B2540] p-4 rounded-lg">
                 <p className="text-xs text-[#5C6B85] mb-1">Monthly Fee</p>
-                <p className="text-sm font-medium text-[#14E8B4]">Rs. {customer.liveIpMonthlyFee || customer.live_ip_monthly_fee || customer.liveip_monthly_fee || 0}</p>
+                <p className="text-sm font-medium text-[#14E8B4]">Rs. {customer.liveIpMonthlyFee || 0}</p>
               </div>
               <div className="bg-[#1B2540] p-4 rounded-lg">
                 <p className="text-xs text-[#5C6B85] mb-1">Installation Fee</p>
-                <p className="text-sm font-medium text-[#EAF0FB]">Rs. {customer.liveIpInstallationFee || customer.live_ip_installation_fee || 0}</p>
+                <p className="text-sm font-medium text-[#EAF0FB]">Rs. {customer.liveIpInstallationFee || 0}</p>
               </div>
             </div>
           </div>

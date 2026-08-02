@@ -3,10 +3,13 @@ import { body, validationResult } from 'express-validator';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { ComplaintsRepository } from '../repositories/ComplaintsRepository';
 import { CustomersRepository } from '../repositories/CustomersRepository';
+import { getSupabaseClient } from '../database/client';
+import { createNotification } from '../services/notifications';
 
 const router = express.Router();
 const complaintsRepo = new ComplaintsRepository();
 const customersRepo = new CustomersRepository();
+const supabase = getSupabaseClient();
 
 // Apply authentication to all routes
 router.use(authenticate);
@@ -95,6 +98,27 @@ router.post('/', authorize('admin', 'staff', 'customer'), [
     };
     
     const complaint = await complaintsRepo.createComplaint(complaintData);
+    
+    // Create notification for customer when complaint is submitted
+    const customer = await customersRepo.findById(req.body.customer_id);
+    if (customer && customer.uid) {
+      const user = await supabase.from('users').select('id').eq('uid', customer.uid).limit(1).single();
+      if (user.data) {
+        await createNotification({
+          user_id: user.data.id,
+          type: 'complaint',
+          title: 'Complaint Submitted',
+          message: `Your complaint regarding ${req.body.category} has been submitted successfully. Reference ID: ${complaint.id}`,
+          action_url: '/complaints',
+          action_text: 'View Complaints',
+          related_id: complaint.id,
+          related_type: 'complaint',
+          is_read: false,
+          expires_at: Date.now() + (30 * 24 * 60 * 60 * 1000),
+        });
+      }
+    }
+    
     res.json(complaint);
   } catch (error) {
     res.status(500).json({ error: 'Failed to create complaint' });
@@ -104,6 +128,12 @@ router.post('/', authorize('admin', 'staff', 'customer'), [
 // Update complaint (admin and staff can update)
 router.put('/:id', authorize('admin', 'staff'), async (req: AuthRequest, res) => {
   try {
+    const existingComplaint = await complaintsRepo.findById(req.params.id);
+    if (!existingComplaint) {
+      return res.status(404).json({ error: 'Complaint not found' });
+    }
+
+    const oldStatus = existingComplaint.status;
     const updateData = {
       ...req.body,
       updated_at: Date.now(),
@@ -111,9 +141,40 @@ router.put('/:id', authorize('admin', 'staff'), async (req: AuthRequest, res) =>
     };
     
     const complaint = await complaintsRepo.updateComplaint(req.params.id, updateData);
-    if (!complaint) {
-      return res.status(404).json({ error: 'Complaint not found' });
+    
+    // Create notification for customer when complaint status changes
+    if (oldStatus !== complaint.status) {
+      const customer = await customersRepo.findById(complaint.customer_id);
+      if (customer && customer.uid) {
+        const user = await supabase.from('users').select('id').eq('uid', customer.uid).limit(1).single();
+        if (user.data) {
+          let title = 'Complaint Status Updated';
+          let message = `Your complaint status has been updated to: ${complaint.status}`;
+          
+          if (complaint.status === 'resolved') {
+            title = 'Complaint Resolved';
+            message = `Your complaint regarding ${complaint.category} has been resolved. Thank you for your patience.`;
+          } else if (complaint.status === 'in-progress') {
+            title = 'Complaint In Progress';
+            message = `Your complaint is being investigated and worked on by our team.`;
+          }
+          
+          await createNotification({
+            user_id: user.data.id,
+            type: 'complaint',
+            title,
+            message,
+            action_url: '/complaints',
+            action_text: 'View Complaints',
+            related_id: complaint.id,
+            related_type: 'complaint',
+            is_read: false,
+            expires_at: Date.now() + (30 * 24 * 60 * 60 * 1000),
+          });
+        }
+      }
     }
+    
     res.json(complaint);
   } catch (error) {
     res.status(500).json({ error: 'Failed to update complaint' });

@@ -97,7 +97,6 @@ const SettingsRoles = lazy(() => import('./pages/SettingsRoles'));
 const SettingsBackup = lazy(() => import('./pages/SettingsBackup'));
 const SettingsLogs = lazy(() => import('./pages/SettingsLogs'));
 const SettingsGoogle = lazy(() => import('./pages/SettingsGoogle'));
-const CustomerDashboard = lazy(() => import('./pages/CustomerDashboard'));
 
 
 
@@ -140,7 +139,7 @@ function PublicOnlyRoute({ children }: { children: JSX.Element }) {
 function App() {
   return (
     <AuthProvider>
-      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <Router>
         <ToastContainer />
         <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#0A0F1C] text-[#EAF0FB]">Loading...</div>}>
           <Routes>
@@ -177,8 +176,6 @@ function App() {
               }
             >
               <Route index element={<Dashboard />} />
-              <Route path="customer-dashboard" element={<CustomerDashboard />} />
-            
             {/* Customers Routes */}
             <Route path="customers/add" element={<CustomersAdd />} />
             <Route path="customers/all" element={<CustomersAll />} />

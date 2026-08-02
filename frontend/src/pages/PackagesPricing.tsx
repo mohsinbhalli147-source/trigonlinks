@@ -40,7 +40,7 @@ export default function PackagesPricing() {
     setError('');
     const result = await packagesApi.getAll();
     if (result.success) {
-      setPricing(result.data);
+      setPricing(Array.isArray(result.data) ? result.data : []);
     } else {
       setError(result.error || 'Failed to load packages');
     }

@@ -30,7 +30,32 @@ export default function ExpensesReports() {
   };
 
   const handleExport = () => {
-    toast.info('Export feature coming soon');
+    if (!reportData) return;
+    
+    const content = `
+EXPENSE REPORTS
+================
+Total Expenses: Rs. ${total.toLocaleString()}
+Categories: ${categoryData.length}
+Top Category: ${topCategory?.category || 'N/A'} (Rs. ${topCategory?.amount?.toLocaleString() || 0})
+
+CATEGORY BREAKDOWN:
+===================
+${(reportData?.categoryData || []).map((cat: any) => 
+  `${cat.category}: Rs. ${cat.amount.toLocaleString()} (${cat.percentage}%)`
+).join('\n')}
+    `;
+    
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `expense-reports-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Expense reports exported successfully');
   };
 
   if (loading) {

@@ -79,7 +79,7 @@ DECLARE
     seq_part INTEGER;
 BEGIN
     date_part := TO_CHAR(CURRENT_TIMESTAMP, 'YYYYMM');
-    SELECT COALESCE(MAX(CAST(SUBSTRING(invoice_number FROM 9) AS INTEGER)), 0) + 1
+    SELECT COALESCE(MAX(CAST(SPLIT_PART(invoice_number, '-', 3) AS INTEGER)), 0) + 1
     INTO seq_part
     FROM invoices
     WHERE invoice_number LIKE 'INV-' || date_part || '-%';

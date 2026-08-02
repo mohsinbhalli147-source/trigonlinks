@@ -39,11 +39,19 @@ export const slowDownMiddleware = slowDown({
 
 // Input sanitization middleware
 export const sanitizeInput = (req: any, res: any, next: any) => {
-  // Sanitize request body
+  // Sanitize request body (only trim string values that are not IDs or numeric fields)
   if (req.body) {
     for (const key in req.body) {
       if (typeof req.body[key] === 'string') {
-        req.body[key] = req.body[key].trim();
+        // Don't trim UUIDs, IDs, or fields that might be numeric strings
+        if (!key.includes('_id') && 
+            !key.includes('amount') &&
+            !key.includes('fee') &&
+            !key.includes('date') &&
+            !key.includes('uid') &&
+            req.body[key].length > 0) {
+          req.body[key] = req.body[key].trim();
+        }
       }
     }
   }

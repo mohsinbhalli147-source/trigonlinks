@@ -153,7 +153,7 @@ router.post('/', authorize('admin'), [
       }
     }
 
-    const staffData = {
+    const staffData: any = {
       uid: req.body.uid || crypto.randomUUID(),
       name: req.body.name,
       username: req.body.username,
@@ -167,11 +167,15 @@ router.post('/', authorize('admin'), [
       rating: req.body.rating || 0,
       salary: req.body.salary || 0,
       hire_date: req.body.hire_date || req.body.joinedDate ? new Date(req.body.joinedDate).getTime() : Date.now(),
-      address: req.body.address,
       created_at: Date.now(),
       updated_at: Date.now(),
       created_by: req.user?.uid,
     };
+
+    // Only include address if it's provided (column may not exist in database)
+    if (req.body.address) {
+      staffData.address = req.body.address;
+    }
     
     const staff = await staffRepo.createStaff(staffData);
     
@@ -179,8 +183,16 @@ router.post('/', authorize('admin'), [
     cache.deletePattern(/^dashboard:/);
     
     res.json(staff);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to create staff' });
+  } catch (error: any) {
+    console.error('Create staff error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+      body: req.body
+    });
+    res.status(500).json({ error: 'Failed to create staff', details: error.message });
   }
 });
 

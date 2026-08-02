@@ -34,7 +34,7 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
       
       if (!cachedUser) {
         // Get user data from PostgreSQL to ensure user still exists and is active
-        let userResult = await supabase
+        const userResult = await supabase
           .from('users')
           .select('*')
           .eq('uid', payload.uid)
@@ -120,7 +120,7 @@ export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFu
       
       try {
         const payload = verifyAccessToken(token);
-        let userResult = await supabase
+        const userResult = await supabase
           .from('users')
           .select('*')
           .eq('uid', payload.uid)

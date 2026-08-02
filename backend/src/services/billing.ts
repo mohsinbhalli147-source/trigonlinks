@@ -4,6 +4,7 @@ import { CustomersRepository } from '../repositories/CustomersRepository';
 import { PackagesRepository } from '../repositories/PackagesRepository';
 import { PaymentsRepository } from '../repositories/PaymentsRepository';
 import { getSupabaseClient } from '../database/client';
+import { createNotification } from './notifications';
 
 const invoicesRepo = new InvoicesRepository();
 const customersRepo = new CustomersRepository();
@@ -74,7 +75,7 @@ export const generateInvoiceNumber = async (): Promise<string> => {
 };
 
 // Generate monthly bills for all active customers
-export const generateMonthlyBills = async (adminUserId: string): Promise<BillGenerationResult> => {
+export const generateMonthlyBills = async (adminUserId: string, forceAll: boolean = false): Promise<BillGenerationResult> => {
   try {
     const now = new Date();
     const currentDay = now.getDate();
@@ -92,15 +93,16 @@ export const generateMonthlyBills = async (adminUserId: string): Promise<BillGen
         const billingDate = customer.billing_date || customer.install_date;
         
         if (!billingDate) {
-          errors.push(`Customer ${customer.name} has no billing date`);
-          continue;
+          errors.push(`Customer ${customer.name} has no billing date - using day 1`);
+          // Use day 1 as default billing date
+          customer.billing_date = 1;
         }
 
         const billingDateObj = new Date(billingDate);
         const billingDay = billingDateObj.getDate();
 
-        // Only generate bill if today is the billing date
-        if (currentDay !== billingDay) {
+        // Only generate bill if today is the billing date, unless forceAll is true
+        if (!forceAll && currentDay !== billingDay) {
           continue;
         }
 
@@ -438,6 +440,26 @@ export const processPayment = async (
         .from('customers')
         .update({ previous_balance: advancePayment })
         .eq('id', invoice.customer_id);
+    }
+
+    // Create notification for customer about payment
+    const customer = await customersRepo.findById(invoice.customer_id);
+    if (customer && customer.uid) {
+      const user = await supabase.from('users').select('id').eq('uid', customer.uid).limit(1).single();
+      if (user.data) {
+        await createNotification({
+          user_id: user.data.id,
+          type: 'payment',
+          title: 'Payment Received',
+          message: `Your payment of Rs. ${amount} for invoice ${invoice.invoice_number} has been received. Remaining balance: Rs. ${remainingBalance > 0 ? remainingBalance : 0}`,
+          action_url: `/invoices/${invoiceId}`,
+          action_text: 'View Invoice',
+          related_id: invoiceId,
+          related_type: 'invoice',
+          is_read: false,
+          expires_at: Date.now() + (30 * 24 * 60 * 60 * 1000),
+        });
+      }
     }
 
     // Get updated invoice

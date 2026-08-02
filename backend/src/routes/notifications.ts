@@ -1,5 +1,6 @@
 import express from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { getSupabaseClient } from '../database/client';
 import {
   getUserNotifications,
   markNotificationAsRead,
@@ -12,6 +13,8 @@ import {
   cleanupExpiredNotifications
 } from '../services/notifications';
 
+const supabase = getSupabaseClient();
+
 const router = express.Router();
 
 // Apply authentication to all routes
@@ -20,14 +23,20 @@ router.use(authenticate);
 // Get notifications for current user
 router.get('/', async (req: AuthRequest, res) => {
   try {
-    const userId = req.user?.uid;
-    if (!userId) {
+    const firebaseUid = req.user?.uid;
+    if (!firebaseUid) {
       return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Get database user ID from Firebase UID
+    const { data: user } = await supabase.from('users').select('id').eq('uid', firebaseUid).limit(1).single();
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
 
     const { unreadOnly = 'false', limit = '20' } = req.query;
     const notifications = await getUserNotifications(
-      userId,
+      user.id,
       unreadOnly === 'true',
       parseInt(limit as string)
     );
@@ -42,12 +51,18 @@ router.get('/', async (req: AuthRequest, res) => {
 // Get unread notification count for current user
 router.get('/unread-count', async (req: AuthRequest, res) => {
   try {
-    const userId = req.user?.uid;
-    if (!userId) {
+    const firebaseUid = req.user?.uid;
+    if (!firebaseUid) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const count = await getUnreadNotificationCount(userId);
+    // Get database user ID from Firebase UID
+    const { data: user } = await supabase.from('users').select('id').eq('uid', firebaseUid).limit(1).single();
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const count = await getUnreadNotificationCount(user.id);
     res.json({ count });
   } catch (error) {
     console.error('Get unread count error:', error);
@@ -67,19 +82,25 @@ router.put('/:id/read', async (req: AuthRequest, res) => {
   }
 });
 
-// Mark all notifications as read for current user
+// Mark all notifications as read
 router.put('/read-all', async (req: AuthRequest, res) => {
   try {
-    const userId = req.user?.uid;
-    if (!userId) {
+    const firebaseUid = req.user?.uid;
+    if (!firebaseUid) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    await markAllNotificationsAsRead(userId);
+    // Get database user ID from Firebase UID
+    const { data: user } = await supabase.from('users').select('id').eq('uid', firebaseUid).limit(1).single();
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    await markAllNotificationsAsRead(user.id);
     res.json({ message: 'All notifications marked as read' });
   } catch (error) {
-    console.error('Mark all notifications as read error:', error);
-    res.status(500).json({ error: 'Failed to mark all notifications as read' });
+    console.error('Mark all as read error:', error);
+    res.status(500).json({ error: 'Failed to mark all as read' });
   }
 });
 

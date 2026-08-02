@@ -54,7 +54,44 @@ export default function InventoryReports() {
   const lowStockCount = filtered.filter(i => (Number(i.qty) || 0) <= (Number(i.minStock) || 0)).length;
 
   const handleExport = () => {
-    toast.info('Export feature coming soon');
+    if (!filtered.length) return;
+    
+    const content = `
+INVENTORY REPORTS
+==================
+Total Items: ${filtered.length}
+Total Units: ${totalItems}
+Total Value: Rs. ${totalValue.toLocaleString()}
+Categories: ${categories.length}
+Low Stock Alerts: ${lowStockCount}
+
+CATEGORY DISTRIBUTION:
+======================
+${categoryDist.map(c => `${c.name}: ${c.value} units`).join('\n')}
+
+INVENTORY DETAILS:
+==================
+${filtered.map(item => {
+  const qty = Number(item.qty) || 0;
+  const minStock = Number(item.minStock) || 0;
+  const price = Number(item.price) || 0;
+  const isLow = qty <= minStock;
+  const isOut = qty === 0;
+  const status = isOut ? 'Out of Stock' : isLow ? 'Low Stock' : 'In Stock';
+  return `${item.name || item.itemName} (${item.sku || 'N/A'}): ${qty} units, Min: ${minStock}, Price: Rs. ${price}, Value: Rs. ${(qty * price).toLocaleString()}, Status: ${status}`;
+}).join('\n')}
+    `;
+    
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `inventory-reports-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Inventory reports exported successfully');
   };
 
   if (loading) {

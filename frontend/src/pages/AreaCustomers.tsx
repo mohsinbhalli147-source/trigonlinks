@@ -73,7 +73,7 @@ export default function AreaCustomers() {
     }
 
     // Load customers filtered by area to avoid fetching all customers
-    let customersResult = await customersApi.getAll({ area: areaId, page: '1', limit: '100' });
+    const customersResult = await customersApi.getAll({ area: areaId, page: '1', limit: '100' });
     let dataArray: any[] = Array.isArray(customersResult.data)
       ? customersResult.data
       : (customersResult.data?.data || []);

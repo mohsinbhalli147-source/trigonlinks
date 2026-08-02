@@ -89,7 +89,30 @@ export default function AreaReports() {
     : [];
 
   const handleExport = () => {
-    toast.info('Export feature coming soon');
+    if (!reportData || !area) return;
+    
+    const content = `
+AREA REPORT - ${area.name}
+==========================
+Total Customers: ${reportData.totalCustomers}
+Active Customers: ${reportData.activeCustomers}
+Connection Success: ${reportData.connectionSuccess}%
+Inactive Customers: ${reportData.totalCustomers - reportData.activeCustomers}
+
+Package Distribution:
+${reportData.packageDistribution.map(p => `${p.name}: ${p.value}`).join('\n')}
+    `;
+    
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `area-report-${area.name}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Report exported successfully');
   };
 
   if (loading) {

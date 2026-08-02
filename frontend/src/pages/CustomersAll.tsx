@@ -287,6 +287,7 @@ export default function CustomersAll() {
             <tbody>
               {filteredCustomers.map((customer) => (
                 <tr key={customer.id} className="border-b border-[#232D45] hover:bg-[#1B2540]/50">
+                  <td className="py-3 px-4 text-sm text-[#8996AD] font-mono">{customer.id}</td>
                   <td className="py-3 px-4 text-sm text-[#EAF0FB]">{customer.name}</td>
                   <td className="py-3 px-4 text-sm text-[#8996AD]">{customer.mobile}</td>
                   <td className="py-3 px-4 text-sm text-[#EAF0FB]">{customer.package}</td>
@@ -347,7 +348,7 @@ export default function CustomersAll() {
               ))}
               {filteredCustomers.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-[#5C6B85]">
+                  <td colSpan={8} className="py-8 text-center text-[#5C6B85]">
                     No customers found
                   </td>
                 </tr>

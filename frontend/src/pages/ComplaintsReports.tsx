@@ -36,8 +36,8 @@ export default function ComplaintsReports() {
         setStats({
           total: complaints.length,
           pending: complaints.filter((c: any) => c.status === 'pending').length,
-          working: complaints.filter((c: any) => c.status === 'working').length,
-          solved: complaints.filter((c: any) => c.status === 'solved').length,
+          working: complaints.filter((c: any) => c.status === 'in-progress').length,
+          solved: complaints.filter((c: any) => c.status === 'resolved').length,
           rejected: complaints.filter((c: any) => c.status === 'rejected').length,
         });
       }

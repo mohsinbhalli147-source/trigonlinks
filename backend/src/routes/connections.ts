@@ -5,6 +5,7 @@ import { ConnectionsRepository } from '../repositories/ConnectionsRepository';
 import { cache } from '../utils/cache';
 import { CustomersRepository } from '../repositories/CustomersRepository';
 import { getSupabaseClient } from '../database/client';
+import { createNotification } from '../services/notifications';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -245,6 +246,72 @@ router.put('/:id', authorize('admin'), async (req: AuthRequest, res) => {
 
     const { status: oldStatus, customer_id: customerId } = existingConnection;
     const newStatus = req.body.status || oldStatus;
+
+    // Create notification for customer when connection status changes
+    if (oldStatus !== newStatus && customerId) {
+      const customer = await customersRepo.findById(customerId);
+      if (customer && customer.uid) {
+        const user = await supabase.from('users').select('id').eq('uid', customer.uid).limit(1).single();
+        if (user.data) {
+          let title = 'Connection Status Updated';
+          let message = `Your connection status has been updated to: ${newStatus}`;
+          let type: 'info' | 'success' | 'warning' | 'error' = 'info';
+
+          switch (newStatus) {
+            case 'approved':
+              title = 'Connection Approved';
+              message = 'Your connection request has been approved. Installation will be scheduled soon.';
+              type = 'success';
+              break;
+            case 'rejected':
+              title = 'Connection Rejected';
+              message = 'Your connection request has been rejected. Please contact support for more information.';
+              type = 'error';
+              break;
+            case 'completed':
+              title = 'Connection Completed';
+              message = 'Your internet connection has been successfully installed. You can now enjoy our services.';
+              type = 'success';
+              break;
+            case 'in-progress':
+              title = 'Installation In Progress';
+              message = 'Your connection installation is currently in progress.';
+              type = 'info';
+              break;
+            case 'on-hold':
+              title = 'Service Suspended';
+              message = 'Your internet service has been suspended. Please contact support for details.';
+              type = 'warning';
+              break;
+            case 'inactive':
+              title = 'Service Suspended';
+              message = 'Your internet service has been suspended. Please contact support for details.';
+              type = 'warning';
+              break;
+            case 'active':
+              if (oldStatus === 'on-hold' || oldStatus === 'inactive') {
+                title = 'Service Restored';
+                message = 'Your internet service has been restored. You can now use our services.';
+                type = 'success';
+              }
+              break;
+          }
+
+          await createNotification({
+            user_id: user.data.id,
+            type: 'connection',
+            title,
+            message,
+            action_url: '/connections',
+            action_text: 'View Connection',
+            related_id: req.params.id,
+            related_type: 'connection',
+            is_read: false,
+            expires_at: Date.now() + (30 * 24 * 60 * 60 * 1000),
+          });
+        }
+      }
+    }
 
     // Map camelCase to snake_case for database
     const updateData: any = {

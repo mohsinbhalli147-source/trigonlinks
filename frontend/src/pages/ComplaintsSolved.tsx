@@ -25,9 +25,9 @@ export default function ComplaintsSolved() {
   }, []);
 
   const fetchSolvedComplaints = async () => {
-    const result = await complaintsApi.getAll({ status: 'solved', limit: 100 });
+    const result = await complaintsApi.getAll({ status: 'resolved', limit: 100 });
     if (result.success) {
-      setComplaints(result.data?.data || result.data?.complaints || []);
+      setComplaints(Array.isArray(result.data?.data) ? result.data.data : Array.isArray(result.data?.complaints) ? result.data.complaints : Array.isArray(result.data) ? result.data : []);
     }
     setLoading(false);
   };

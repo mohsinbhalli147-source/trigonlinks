@@ -6,6 +6,7 @@ import { PaymentsRepository } from '../repositories/PaymentsRepository';
 import { CustomersRepository } from '../repositories/CustomersRepository';
 import { getSupabaseClient } from '../database/client';
 import { cache } from '../utils/cache';
+import { createNotification } from '../services/notifications';
 
 const router = express.Router();
 const supabase = getSupabaseClient();
@@ -98,9 +99,9 @@ router.get('/:id', authorize('admin', 'staff', 'customer'), async (req: AuthRequ
 
 // Create invoice (admin only)
 router.post('/', authorize('admin'), [
-  body('customer_id').notEmpty(),
-  body('customer_name').notEmpty(),
-  body('amount').isNumeric(),
+  body('customer_id').notEmpty().withMessage('customer_id is required'),
+  body('customer_name').notEmpty().withMessage('customer_name is required'),
+  body('amount').isNumeric().withMessage('amount must be numeric'),
 ], async (req: AuthRequest, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -108,7 +109,28 @@ router.post('/', authorize('admin'), [
   }
 
   try {
+    // Generate invoice number manually
+    const now = new Date();
+    const monthYear = now.toISOString().slice(0, 7).replace('-', ''); // YYYYMM
+    const { data: lastInvoice } = await supabase
+      .from('invoices')
+      .select('invoice_number')
+      .gte('invoice_number', `INV-${monthYear}`)
+      .lt('invoice_number', `INV-${monthYear}99`)
+      .order('invoice_number', { ascending: false })
+      .limit(1);
+
+    let sequence = 1;
+    if (lastInvoice && lastInvoice.length > 0) {
+      const lastInvoiceNumber = lastInvoice[0].invoice_number;
+      const lastSequence = parseInt(lastInvoiceNumber.split('-')[2]);
+      sequence = lastSequence + 1;
+    }
+
+    const invoiceNumber = `INV-${monthYear}-${String(sequence).padStart(4, '0')}`;
+
     const invoiceData = {
+      invoice_number: invoiceNumber,
       customer_id: req.body.customer_id,
       customer_name: req.body.customer_name,
       customer_phone: req.body.customer_phone,
@@ -125,12 +147,36 @@ router.post('/', authorize('admin'), [
     
     const invoice = await invoicesRepo.createInvoice(invoiceData);
     
+    // Create notification for customer
+    const customer = await customersRepo.findById(req.body.customer_id);
+    if (customer && customer.uid) {
+      const user = await supabase.from('users').select('id').eq('uid', customer.uid).limit(1).single();
+      if (user.data) {
+        const dueDateText = invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : 'Not specified';
+        const expiresAt = invoice.due_date ? invoice.due_date + (30 * 24 * 60 * 60 * 1000) : Date.now() + (30 * 24 * 60 * 60 * 1000);
+        
+        await createNotification({
+          user_id: user.data.id,
+          type: 'bill',
+          title: 'New Invoice Generated',
+          message: `Your invoice ${invoice.invoice_number} of Rs. ${invoice.amount} has been generated. Due date: ${dueDateText}`,
+          action_url: `/invoices/${invoice.id}`,
+          action_text: 'View Invoice',
+          related_id: invoice.id,
+          related_type: 'invoice',
+          is_read: false,
+          expires_at: expiresAt,
+        });
+      }
+    }
+    
     // Invalidate dashboard cache
     cache.deletePattern(/^dashboard:/);
     
     res.json(invoice);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create invoice' });
+    console.error('Create invoice error:', error);
+    res.status(500).json({ error: 'Failed to create invoice', details: error instanceof Error ? error.message : String(error) });
   }
 });
 
@@ -186,6 +232,26 @@ router.put('/:id/approve', authorize('admin'), async (req: AuthRequest, res) => 
     
     if (!payment) {
       return res.status(404).json({ error: 'Payment not found' });
+    }
+    
+    // Create notification for customer
+    const customer = await customersRepo.findById(payment.customer_id);
+    if (customer && customer.uid) {
+      const user = await supabase.from('users').select('id').eq('uid', customer.uid).limit(1).single();
+      if (user.data) {
+        await createNotification({
+          user_id: user.data.id,
+          type: 'payment',
+          title: 'Payment Successful',
+          message: `Your payment of Rs. ${payment.amount} for invoice has been approved successfully.`,
+          action_url: `/invoices/${payment.invoice_id}`,
+          action_text: 'View Invoice',
+          related_id: payment.invoice_id,
+          related_type: 'invoice',
+          is_read: false,
+          expires_at: Date.now() + (30 * 24 * 60 * 60 * 1000),
+        });
+      }
     }
     
     cache.deletePattern(/^dashboard:/);

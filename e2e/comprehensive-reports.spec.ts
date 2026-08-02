@@ -1,17 +1,15 @@
 import { test, expect } from '@playwright/test';
+import { login } from './utils/test-helpers';
 
 test.describe('Comprehensive Reports Module Testing', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.fill('input[type="email"]', 'mohsinbhalli147@gmail.com');
-    await page.fill('input[type="password"]', 'Zimal@123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { timeout: 15000 });
+    await login(page);
+    await expect(page).toHaveURL(/\/$/, { timeout: 15000 });
   });
 
   test('should navigate to reports page', async ({ page }) => {
     await page.goto('/reports');
-    await expect(page).toHaveURL('/reports');
+    await expect(page).toHaveURL(/\/reports$/);
   });
 
   test('should display reports options', async ({ page }) => {

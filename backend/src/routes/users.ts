@@ -67,7 +67,7 @@ router.get('/', authorize('admin'), async (req, res) => {
     const total = totalResult.count || 0;
 
     res.json({
-      users: dataResult.data,
+      data: dataResult.data,
       pagination: {
         page: pageNum,
         limit: limitNum,

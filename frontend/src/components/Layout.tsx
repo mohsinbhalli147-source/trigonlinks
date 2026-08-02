@@ -265,22 +265,8 @@ export default function Layout() {
         </div>
         
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {menuSections.filter(section => {
-            if (user?.role === 'customer') {
-              return section.name === 'Dashboard' || section.name === 'Payments & Billing' || section.name === 'Complaints';
-            }
-            return true;
-          }).map((section) => {
-            let filteredSubsections = section.subsections;
-            if (user?.role === 'customer') {
-              if (section.name === 'Payments & Billing') {
-                filteredSubsections = section.subsections.filter(sub => sub.name === 'All Invoices' || sub.name === 'Billing Overview');
-              } else if (section.name === 'Complaints') {
-                filteredSubsections = section.subsections.filter(sub => sub.name === 'Add Complaint' || sub.name === 'All Complaints');
-              } else {
-                filteredSubsections = [];
-              }
-            }
+          {menuSections.map((section) => {
+            const filteredSubsections = section.subsections;
 
             const hasSubsections = filteredSubsections.length > 0;
             const isExpanded = expandedSections.has(section.name);

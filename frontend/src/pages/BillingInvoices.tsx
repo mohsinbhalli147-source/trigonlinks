@@ -68,12 +68,39 @@ export default function BillingInvoices() {
     navigate(`/billing/invoice/${id}`);
   };
 
-  const handlePrint = (_id: string) => {
-    toast.info('Print functionality coming soon.');
+  const handlePrint = (id: string) => {
+    navigate(`/billing/invoice/${id}`);
   };
 
-  const handleDownload = (_id: string) => {
-    toast.info('Download functionality coming soon.');
+  const handleDownload = async (id: string) => {
+    try {
+      const response = await invoicesApi.getById(id);
+      if (response.success && response.data) {
+        const invoice = response.data;
+        const content = `
+          INVOICE #${invoice.invoiceNumber}
+          ========================
+          Customer: ${invoice.customerName}
+          Phone: ${invoice.customerPhone}
+          Package: ${invoice.package}
+          Amount: Rs. ${invoice.amount}
+          Status: ${invoice.status}
+          Due Date: ${invoice.dueDate}
+        `;
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `invoice-${invoice.invoiceNumber}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success('Invoice downloaded successfully');
+      }
+    } catch (error) {
+      toast.error('Failed to download invoice');
+    }
   };
 
   if (loading) {

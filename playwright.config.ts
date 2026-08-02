@@ -2,17 +2,17 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  fullyParallel: true,
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 4 : 4,
+  workers: process.env.CI ? 4 : 1,
   reporter: [
     ['html'],
     ['json', { outputFile: 'test-results/results.json' }],
     ['list']
   ],
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:3004',
+    baseURL: process.env.BASE_URL || 'http://localhost:5173',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'off',
@@ -32,8 +32,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev --prefix frontend',
-    url: 'http://localhost:3005',
+    command: 'npm run dev --prefix frontend -- --host localhost --port 5173 --strictPort',
+    url: 'http://localhost:5173',
     reuseExistingServer: true,
     timeout: 120000,
   },

@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authApi } from '../services/api';
 
 export default function ResetPassword() {
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
   const navigate = useNavigate();
-  const token = searchParams.get('token') || '';
+  const email = location.state?.email || '';
+  const [otp, setOtp] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -17,8 +18,14 @@ export default function ResetPassword() {
     setError('');
     setMessage('');
 
-    if (!token) {
-      setError('Reset token is missing.');
+    if (!email) {
+      setError('Email is missing. Please start the password reset process again.');
+      navigate('/forgot-password');
+      return;
+    }
+
+    if (!otp) {
+      setError('Please enter the OTP code sent to your email.');
       return;
     }
 
@@ -38,11 +45,11 @@ export default function ResetPassword() {
     }
 
     setLoading(true);
-    const response = await authApi.resetPassword(token, password);
+    const response = await authApi.resetPassword(email, otp, password);
 
     if (response.success) {
       setMessage('Your password has been reset successfully. You can now sign in.');
-      setTimeout(() => navigate('/login'), 1200);
+      setTimeout(() => navigate('/login'), 2000);
     } else {
       setError(response.error || 'Failed to reset password.');
     }
@@ -55,7 +62,7 @@ export default function ResetPassword() {
       <div className="w-full max-w-md bg-[#121B2E] border border-[#232D45] rounded-xl p-8 shadow-2xl">
         <h1 className="text-2xl font-bold text-[#EAF0FB] mb-3">Set New Password</h1>
         <p className="text-sm text-[#8996AD] mb-6">
-          Enter a new secure password for your account. After completion, use it to sign in.
+          Enter the OTP code sent to your email and set a new secure password.
         </p>
 
         {message && (
@@ -70,6 +77,17 @@ export default function ResetPassword() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <label className="block text-sm font-medium text-[#8996AD]">OTP Code</label>
+          <input
+            type="text"
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+            className="w-full px-4 py-3 bg-[#0E162B] border border-[#232D45] rounded-lg text-[#EAF0FB] focus:outline-none focus:border-[#14E8B4]"
+            placeholder="Enter 6-digit OTP"
+            maxLength={6}
+            required
+          />
+
           <label className="block text-sm font-medium text-[#8996AD]">New Password</label>
           <input
             type="password"
