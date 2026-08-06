@@ -1,4 +1,5 @@
-import express from 'express';
+﻿import express from 'express';
+import { logger } from '../utils/logger';
 import { body, validationResult } from 'express-validator';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { PackagesRepository } from '../repositories/PackagesRepository';
@@ -32,7 +33,7 @@ router.get('/', authorize('admin', 'staff'), async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    console.error('Get packages error:', error);
+    logger.error('Get packages error:', error);
     res.status(500).json({ error: 'Failed to fetch packages' });
   }
 });

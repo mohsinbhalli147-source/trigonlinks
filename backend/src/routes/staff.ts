@@ -1,4 +1,5 @@
-import express from 'express';
+﻿import express from 'express';
+import { logger } from '../utils/logger';
 import { body, validationResult } from 'express-validator';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { StaffRepository } from '../repositories/StaffRepository';
@@ -37,7 +38,7 @@ router.get('/', authorize('admin'), async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    console.error('Get staff error:', error);
+    logger.error('Get staff error:', error);
     res.status(500).json({ error: 'Failed to fetch staff' });
   }
 });
@@ -109,7 +110,7 @@ router.get('/reports', authorize('admin'), async (req, res) => {
 
     res.json(performances);
   } catch (error) {
-    console.error('Get staff reports error:', error);
+    logger.error('Get staff reports error:', error);
     res.status(500).json({ error: 'Failed to fetch staff reports' });
   }
 });
@@ -165,14 +166,18 @@ router.post('/', authorize('admin'), [
       assigned_area: req.body.assigned_area,
       permissions: req.body.permissions || { view: true, add: false, edit: false, delete: false, approve: false },
       rating: req.body.rating || 0,
-      salary: req.body.salary || 0,
-      hire_date: req.body.hire_date || req.body.joinedDate ? new Date(req.body.joinedDate).getTime() : Date.now(),
       created_at: Date.now(),
       updated_at: Date.now(),
       created_by: req.user?.uid,
     };
 
-    // Only include address if it's provided (column may not exist in database)
+    // Only include optional fields if they are provided (columns may not exist in database)
+    if (req.body.salary !== undefined) {
+      staffData.salary = req.body.salary;
+    }
+    if (req.body.hire_date || req.body.joinedDate) {
+      staffData.hire_date = req.body.hire_date || (req.body.joinedDate ? new Date(req.body.joinedDate).getTime() : undefined);
+    }
     if (req.body.address) {
       staffData.address = req.body.address;
     }
@@ -184,8 +189,8 @@ router.post('/', authorize('admin'), [
     
     res.json(staff);
   } catch (error: any) {
-    console.error('Create staff error:', error);
-    console.error('Error details:', {
+    logger.error('Create staff error:', error);
+    logger.error('Error details:', {
       message: error.message,
       code: error.code,
       details: error.details,

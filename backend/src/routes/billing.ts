@@ -1,4 +1,5 @@
-import express from 'express';
+﻿import express from 'express';
+import { logger } from '../utils/logger';
 import { body, validationResult } from 'express-validator';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import {
@@ -11,6 +12,7 @@ import {
 import { getSupabaseClient } from '../database/client';
 import { StaffRepository } from '../repositories/StaffRepository';
 import { InvoicesRepository } from '../repositories/InvoicesRepository';
+import { cache } from '../utils/cache';
 
 const router = express.Router();
 const supabase = getSupabaseClient();
@@ -52,7 +54,7 @@ router.get('/', authorize('admin', 'staff'), async (req, res) => {
       totalPages: Math.ceil(total / limitNum)
     }});
   } catch (error) {
-    console.error('Get billing records error:', error);
+    logger.error('Get billing records error:', error);
     res.status(500).json({ error: 'Failed to fetch billing records' });
   }
 });
@@ -85,7 +87,7 @@ router.get('/payments', authorize('admin', 'staff'), async (req, res) => {
       totalPages: Math.ceil(total / limitNum)
     }});
   } catch (error) {
-    console.error('Get payments error:', error);
+    logger.error('Get payments error:', error);
     res.status(500).json({ error: 'Failed to fetch payments' });
   }
 });
@@ -97,7 +99,7 @@ router.post('/generate-monthly', authorize('admin'), async (req: AuthRequest, re
     const result = await generateMonthlyBills(req.user?.uid || '', forceAll);
     res.json(result);
   } catch (error) {
-    console.error('Generate monthly bills error:', error);
+    logger.error('Generate monthly bills error:', error);
     res.status(500).json({ success: false, message: 'Failed to generate monthly bills' });
   }
 });
@@ -112,7 +114,7 @@ router.post('/generate/:customerId', authorize('admin'), async (req: AuthRequest
     const result = await generateCustomerBill(customerId, req.user?.uid || '', date);
     res.json(result);
   } catch (error) {
-    console.error('Generate customer bill error:', error);
+    logger.error('Generate customer bill error:', error);
     res.status(500).json({ success: false, message: 'Failed to generate customer bill' });
   }
 });
@@ -130,7 +132,7 @@ router.post('/payment/:invoiceId', authorize('admin', 'staff'), [
   try {
     const { invoiceId } = req.params;
     const { amount, paymentMethod, discountAmount, discountReason } = req.body;
-    
+
     const result = await processPayment(
       invoiceId,
       Number(amount),
@@ -139,9 +141,15 @@ router.post('/payment/:invoiceId', authorize('admin', 'staff'), [
       discountAmount ? Number(discountAmount) : undefined,
       discountReason
     );
+
+    // Invalidate dashboard cache after payment processing
+    if (result.success) {
+      cache.deletePattern(/^dashboard:/);
+    }
+
     res.json(result);
   } catch (error) {
-    console.error('Process payment error:', error);
+    logger.error('Process payment error:', error);
     res.status(500).json({ success: false, message: 'Failed to process payment' });
   }
 });
@@ -152,7 +160,7 @@ router.post('/mark-overdue', authorize('admin'), async (req: AuthRequest, res) =
     const result = await markOverdueInvoices();
     res.json(result);
   } catch (error) {
-    console.error('Mark overdue error:', error);
+    logger.error('Mark overdue error:', error);
     res.status(500).json({ success: false, message: 'Failed to mark overdue invoices' });
   }
 });
@@ -164,7 +172,7 @@ router.get('/summary/:customerId', authorize('admin', 'staff'), async (req, res)
     const summary = await getCustomerBillingSummary(customerId);
     res.json(summary);
   } catch (error) {
-    console.error('Get billing summary error:', error);
+    logger.error('Get billing summary error:', error);
     res.status(500).json({ error: 'Failed to get billing summary' });
   }
 });
@@ -222,7 +230,7 @@ router.get('/payments/staff-records', authorize('admin', 'staff'), async (req, r
       totalPages: Math.ceil(total / limitNum)
     }});
   } catch (error) {
-    console.error('Get staff payment records error:', error);
+    logger.error('Get staff payment records error:', error);
     res.status(500).json({ error: 'Failed to fetch staff payment records' });
   }
 });
@@ -281,7 +289,7 @@ router.get('/payments/:customerId', authorize('admin', 'staff'), async (req, res
       totalPages: Math.ceil(total / limitNum)
     }});
   } catch (error) {
-    console.error('Get staff payment records error:', error);
+    logger.error('Get staff payment records error:', error);
     res.status(500).json({ error: 'Failed to fetch staff payment records' });
   }
 });

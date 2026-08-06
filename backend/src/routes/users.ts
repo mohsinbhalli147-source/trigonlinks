@@ -1,11 +1,11 @@
-import express from 'express';
+﻿import express from 'express';
+import { logger } from '../utils/logger';
 import { body, validationResult, query as queryValidator } from 'express-validator';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { UsersRepository } from '../repositories/UsersRepository';
 import { getSupabaseClient } from '../database/client';
 import { hashPassword } from '../utils/auth';
 import { cache } from '../utils/cache';
-import { logger } from '../utils/logger';
 
 const router = express.Router();
 const supabase = getSupabaseClient();
@@ -128,7 +128,7 @@ router.get('/:id', authorize('admin'), async (req, res) => {
 // Create user (admin only)
 router.post('/', authorize('admin'), [
   body('email').isEmail().normalizeEmail(),
-  body('password').isLength({ min: 6 }),
+  body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters long'),
   body('name').notEmpty().trim(),
   body('role').isIn(['admin', 'staff', 'customer']),
 ], async (req: AuthRequest, res) => {

@@ -1,4 +1,5 @@
-import express from 'express';
+﻿import express from 'express';
+import { logger } from '../utils/logger';
 import { authenticate, authorize } from '../middleware/auth';
 import { getSupabaseClient } from '../database/client';
 
@@ -23,7 +24,7 @@ router.get('/', authorize('admin', 'staff'), async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    console.error('Error fetching logs:', error);
+    logger.error('Error fetching logs:', error);
     res.status(500).json({ error: 'Failed to fetch logs' });
   }
 });

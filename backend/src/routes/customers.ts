@@ -1,11 +1,11 @@
-import express from 'express';
+﻿import express from 'express';
+import { logger } from '../utils/logger';
 import { body, validationResult } from 'express-validator';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { CustomersRepository } from '../repositories/CustomersRepository';
 import { cache } from '../utils/cache';
 import { googleContactsService } from '../services/google-contacts';
 import { getSupabaseClient } from '../database/client';
-import { logger } from '../utils/logger';
 import crypto from 'crypto';
 import { convertObjectKeysToSnake, convertObjectKeysToCamel } from '../utils/fieldConverter';
 
@@ -46,7 +46,7 @@ router.get('/', authorize('admin', 'staff'), async (req, res) => {
 
     res.json(convertedResult);
   } catch (error) {
-    console.error('Get customers error:', error);
+    logger.error('Get customers error:', error);
     res.status(500).json({ error: 'Failed to fetch customers' });
   }
 });
@@ -64,7 +64,7 @@ router.get('/search', authorize('admin', 'staff'), async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    console.error('Search customers error:', error);
+    logger.error('Search customers error:', error);
     res.status(500).json({ error: 'Failed to search customers' });
   }
 });
@@ -90,7 +90,7 @@ router.get('/:id', authorize('admin', 'staff', 'customer'), async (req: AuthRequ
     const customerCamel = convertObjectKeysToCamel(customer);
     res.json(customerCamel);
   } catch (error: any) {
-    console.error('Get customer error:', error);
+    logger.error('Get customer error:', error);
     res.status(500).json({ error: 'Failed to fetch customer', details: error.message });
   }
 });
@@ -180,7 +180,7 @@ router.post('/', authorize('admin'), [
 // Update customer (admin only)
 router.put('/:id', authorize('admin'), async (req: AuthRequest, res) => {
   try {
-    console.log('Update customer request:', req.params.id, req.body);
+    logger.info('Update customer request:', req.params.id, req.body);
     
     // Convert camelCase to snake_case for database
     const updateDataSnake = convertObjectKeysToSnake(req.body) as any;
@@ -190,15 +190,15 @@ router.put('/:id', authorize('admin'), async (req: AuthRequest, res) => {
       updated_by: req.user?.uid,
     };
     
-    console.log('Converted update data for database:', updateData);
+    logger.info('Converted update data for database:', updateData);
     
     const customer = await customersRepo.updateCustomer(req.params.id, updateData);
     if (!customer) {
-      console.error('Customer not found:', req.params.id);
+      logger.error('Customer not found:', req.params.id);
       return res.status(404).json({ error: 'Customer not found' });
     }
     
-    console.log('Customer updated successfully:', customer.id);
+    logger.info('Customer updated successfully:', customer.id);
     
     // Convert back to camelCase for frontend response
     const customerCamel = convertObjectKeysToCamel(customer);
@@ -248,7 +248,7 @@ router.put('/:id', authorize('admin'), async (req: AuthRequest, res) => {
     
     res.json(customerCamel);
   } catch (error) {
-    console.error('Update customer error:', error);
+    logger.error('Update customer error:', error);
     res.status(500).json({ error: 'Failed to update customer' });
   }
 });

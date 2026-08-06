@@ -1,4 +1,5 @@
-import express from 'express';
+﻿import express from 'express';
+import { logger } from '../utils/logger';
 import { body, validationResult } from 'express-validator';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { ComplaintsRepository } from '../repositories/ComplaintsRepository';
@@ -55,7 +56,7 @@ router.get('/', authorize('admin', 'staff', 'customer'), async (req: AuthRequest
 
     res.json(result);
   } catch (error: any) {
-    console.error('Get complaints error:', error);
+    logger.error('Get complaints error:', error);
     res.status(500).json({ error: 'Failed to fetch complaints', details: error.message });
   }
 });

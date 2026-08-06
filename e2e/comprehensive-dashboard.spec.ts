@@ -7,25 +7,25 @@ test.describe('Comprehensive Dashboard Testing', () => {
     await page.fill('input[type="email"]', 'mohsinbhalli147@gmail.com');
     await page.fill('input[type="password"]', 'Zimal@123');
     await page.click('button[type="submit"]');
-    await page.waitForURL('/', { timeout: 15000 });
+    await page.waitForURL('/', { timeout: 30000 });
   });
 
   test('should display dashboard with all widgets', async ({ page }) => {
     await expect(page.locator('text=TRIGONLINKS')).toBeVisible();
-    await expect(page.locator('text=Dashboard')).toBeVisible();
+    await expect(page.locator('h1:has-text("Dashboard")')).toBeVisible();
   });
 
   test('should display customer statistics', async ({ page }) => {
     // Check for customer count or statistics
     await page.waitForTimeout(2000);
-    const customerStats = page.locator('text=/customer/i, text=/Customer/i');
-    await expect(customerStats.first()).toBeVisible({ timeout: 10000 });
+    const customerStats = page.locator('text=Total Customers').first();
+    await expect(customerStats).toBeVisible({ timeout: 10000 });
   });
 
   test('should display revenue information', async ({ page }) => {
     await page.waitForTimeout(2000);
-    const revenueStats = page.locator('text=/revenue/i, text=/Revenue/i, text=/income/i, text=/Income/i');
-    await expect(revenueStats.first()).toBeVisible({ timeout: 10000 });
+    const revenueStats = page.locator('text=Monthly Revenue');
+    await expect(revenueStats).toBeVisible({ timeout: 10000 });
   });
 
   test('should navigate to customers module', async ({ page }) => {

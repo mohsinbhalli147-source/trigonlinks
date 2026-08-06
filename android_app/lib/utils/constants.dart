@@ -3,6 +3,14 @@ class AppConstants {
   static const String appName = 'TrigonLinks';
   static const String appVersion = '1.0.0';
   
+  // Contact Info
+  static const String supportPhone = '+92-307-7669999';
+  static const String whatsappNumber = '+92-307-7669999';
+  static const String supportEmail = 'support@trigonlinks.com';
+  
+  // Cache Configuration
+  static const int cacheMaxAge = 3600000; // 1 hour in milliseconds
+  
   // Storage Keys
   static const String accessTokenKey = 'access_token';
   static const String refreshTokenKey = 'refresh_token';

@@ -1,4 +1,5 @@
-import express from 'express';
+﻿import express from 'express';
+import { logger } from '../utils/logger';
 import { authenticate, authorize } from '../middleware/auth';
 import { cache } from '../utils/cache';
 import { getSupabaseClient } from '../database/client';
@@ -34,7 +35,7 @@ router.get('/', authenticate, authorize('admin', 'staff'), async (req, res) => {
       pendingRevenue,
     });
   } catch (error) {
-    console.error('Dashboard error:', error);
+    logger.error('Dashboard error:', error);
     res.status(500).json({ error: 'Failed to fetch dashboard data' });
   }
 });
@@ -51,12 +52,13 @@ const DASHBOARD_SECTIONS = [
   'staffPerformanceData',
   'areaDetails',
   'overview',
+  'todayStats',
 ] as const;
 
 type DashboardSection = typeof DASHBOARD_SECTIONS[number];
 
 const STAGE_SECTION_MAP: Record<string, DashboardSection[]> = {
-  summary: ['mainStats', 'customerReportsSubsections', 'newConnectionSubsections', 'overview'],
+  summary: ['mainStats', 'customerReportsSubsections', 'newConnectionSubsections', 'overview', 'todayStats'],
   charts: ['customerGrowthData', 'areaWiseCustomers', 'paymentStatusData', 'connectionStatusData', 'revenueData'],
   details: ['staffPerformanceData', 'areaDetails'],
   all: [...DASHBOARD_SECTIONS],
@@ -66,6 +68,7 @@ const EMPTY_OVERVIEW = {
   totalCustomers: 0,
   activeCustomers: 0,
   suspendedCustomers: 0,
+  expiredCustomers: 0,
   totalRevenue: 0,
   pendingRevenue: 0,
   totalCollected: 0,
@@ -100,6 +103,8 @@ const formatPercentChange = (current: number, previous: number) => {
 
 const getMonthStart = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getTime();
 const getMonthEnd = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
+const getDayStart = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+const getDayEnd = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999).getTime();
 
 const buildMonthWindows = (count: number) => {
   const formatter = new Intl.DateTimeFormat('en-US', { month: 'short' });
@@ -213,6 +218,17 @@ router.get('/statistics', authenticate, authorize('admin', 'staff'), async (req,
         promises.totalAnnouncements = supabase.from('announcements').select('*', { count: 'exact', head: true });
       }
 
+      if (sections.has('todayStats')) {
+        const today = new Date();
+        const todayStart = getDayStart(today);
+        const todayEnd = getDayEnd(today);
+
+        promises.todayPayments = supabase.from('payments').select('amount').gte('created_at', todayStart).lte('created_at', todayEnd).eq('status', 'completed');
+        promises.todayPaymentCount = supabase.from('payments').select('*', { count: 'exact', head: true }).gte('created_at', todayStart).lte('created_at', todayEnd).eq('status', 'completed');
+        promises.todayInvoicesPaid = supabase.from('invoices').select('*', { count: 'exact', head: true }).gte('last_payment_date', todayStart).lte('last_payment_date', todayEnd);
+        promises.expiredCustomers = supabase.from('customers').select('*', { count: 'exact', head: true }).eq('status', 'inactive');
+      }
+
       if (sections.has('newConnectionSubsections') || sections.has('connectionStatusData')) {
         promises.inProgressConnections = supabase.from('connections').select('*', { count: 'exact', head: true }).eq('status', 'in-progress');
         promises.completedConnections = supabase.from('connections').select('*', { count: 'exact', head: true }).eq('status', 'completed');
@@ -255,7 +271,7 @@ router.get('/statistics', authenticate, authorize('admin', 'staff'), async (req,
           const result = await builder;
           return [key, result];
         } catch (error) {
-          console.error(`Dashboard query error for ${key}:`, error);
+          logger.error(`Dashboard query error for ${key}:`, error);
           return [key, { data: [], count: 0, error }];
         }
       }));
@@ -306,7 +322,7 @@ router.get('/statistics', authenticate, authorize('admin', 'staff'), async (req,
             const result = await builder;
             return [key, result];
           } catch (error) {
-            console.error(`Dashboard secondary query error for ${key}:`, error);
+            logger.error(`Dashboard secondary query error for ${key}:`, error);
             return [key, { data: [], count: 0, error }];
           }
         }));
@@ -320,6 +336,7 @@ router.get('/statistics', authenticate, authorize('admin', 'staff'), async (req,
       const totalCustomers = getCount(data.totalCustomers);
       const activeCustomers = getCount(data.activeCustomers);
       const suspendedCustomers = getCount(data.suspendedCustomers);
+      const expiredCustomers = getCount(data.expiredCustomers) || getCount(data.inactiveCustomers) || 0;
       const totalRevenue = getSum(data.totalRevenue);
       const iptvCustomers = getCount(data.iptvCustomers);
       const liveIpCustomers = getCount(data.liveIpCustomers);
@@ -327,7 +344,8 @@ router.get('/statistics', authenticate, authorize('admin', 'staff'), async (req,
       const currentMonthRevenue = getSum(data.currentMonthRevenue);
       const previousMonthRevenue = getSum(data.previousMonthRevenue);
 
-      const pendingRevenue = Math.max(getSum(data.totalInvoiceAmount) - getSum(data.totalCollected), 0);
+      // Fix: Calculate pending revenue from invoices remaining_balance, not from customer.previous_balance
+      const pendingRevenue = getSum(data.totalInvoiceAmount) - getSum(data.totalCollected);
       const avgRevenuePerCustomer = totalCustomers > 0 ? totalRevenue / totalCustomers : 0;
 
       const mainStats = sections.has('mainStats') ? [
@@ -345,6 +363,7 @@ router.get('/statistics', authenticate, authorize('admin', 'staff'), async (req,
         totalCustomers,
         activeCustomers,
         suspendedCustomers,
+        expiredCustomers,
         totalRevenue,
         pendingRevenue,
         totalCollected: getSum(data.totalCollected),
@@ -361,6 +380,18 @@ router.get('/statistics', authenticate, authorize('admin', 'staff'), async (req,
         totalInventory: getCount(data.totalInventory),
         totalAnnouncements: getCount(data.totalAnnouncements),
       } : EMPTY_OVERVIEW;
+
+      const todayStats = sections.has('todayStats') ? {
+        todayCollection: getSum(data.todayPayments),
+        todayPaymentCount: getCount(data.todayPaymentCount),
+        todayInvoicesPaid: getCount(data.todayInvoicesPaid),
+        activeToday: activeCustomers, // This would need real connection tracking
+        newThisMonth: getCount(data.currentMonthCustomers),
+        suspended: suspendedCustomers,
+        dueToday: 0, // Would need due date calculation
+        overdue: getCount(data.overdueInvoices),
+        collectionToday: getSum(data.todayPayments),
+      } : null;
 
       const newConnectionSubsections = sections.has('newConnectionSubsections') ? [
         { name: 'New Applications', count: getCount(data.pendingConnections), icon: 'Plus', color: 'text-[#14E8B4]', description: 'Pending approval' },
@@ -379,7 +410,7 @@ router.get('/statistics', authenticate, authorize('admin', 'staff'), async (req,
         { name: 'Active Areas', count: getCount(data.activeAreas).toString(), icon: 'MapPin', color: 'text-[#14E8B4]', description: 'Covered service areas' },
         { name: 'Collection Rate', count: `${collectionRate}%`, icon: 'DollarSign', color: 'text-[#14E8B4]', description: 'Invoices collected' },
         { name: 'Avg Revenue/Customer', count: `Rs. ${Math.round(avgRevenuePerCustomer).toLocaleString()}`, icon: 'TrendingUp', color: 'text-[#4C8DFF]', description: 'Per active customer' },
-        { name: 'View Full Reports', count: '→', icon: 'BarChart3', color: 'text-[#F6B93B]', description: 'Detailed report views' },
+        { name: 'View Full Reports', count: 'â†’', icon: 'BarChart3', color: 'text-[#F6B93B]', description: 'Detailed report views' },
       ] : [];
 
       const paymentStatusData = sections.has('paymentStatusData') ? [
@@ -456,27 +487,35 @@ router.get('/statistics', authenticate, authorize('admin', 'staff'), async (req,
             date: i.last_payment_date,
           }));
 
+        const totalRevenue = areaCustomers.reduce((sum: number, c: any) => sum + toNumber(c.fee), 0);
+        const iptvRevenue = areaCustomers.reduce((sum: number, c: any) => sum + toNumber(c.iptv_monthly_charges || 0), 0);
+        const liveIpRevenue = areaCustomers.reduce((sum: number, c: any) => sum + toNumber(c.live_ip_monthly_fee || 0), 0);
+
         return {
-          name: area.name,
+          id: area.id,
+          name: area.name || 'Unknown Area',
+          customers: areaCustomers.length,
+          revenue: `Rs. ${totalRevenue.toLocaleString()}`,
+          connections: getCount(data[`areaConn_${area.name}`]) || 0,
+          staff: getCount(data[`areaStaff_${area.name}`]) || 0,
+          // Additional detailed metrics
           totalCustomers: areaCustomers.length,
           activeCustomers: areaCustomers.filter((c: any) => c.status === 'active').length,
           suspendedCustomers: areaCustomers.filter((c: any) => c.status === 'suspended').length,
-          totalMonthlyRevenue: areaCustomers.reduce((sum: number, c: any) => sum + toNumber(c.fee), 0),
+          totalMonthlyRevenue: totalRevenue,
           paidCustomers: areaInvoices.filter((i: any) => i.status === 'paid').length,
           pendingPayments: areaInvoices.filter((i: any) => ['unpaid', 'overdue'].includes(i.status)).length,
           partialPayments: areaInvoices.filter((i: any) => i.status === 'partial').length,
           collectionPercentage: areaInvoices.length > 0 ? Math.round((areaInvoices.filter((i: any) => i.status === 'paid').length / areaInvoices.length) * 100) : 0,
-          outstandingAmount: areaInvoices.reduce((sum: number, i: any) => sum + toNumber(i.remaining_balance), 0),
+          outstandingAmount: areaInvoices.reduce((sum: number, i: any) => sum + toNumber(i.remaining_balance || 0), 0),
           recentCollections,
           iptvCustomers: areaCustomers.filter((c: any) => c.iptv_enabled).length,
           liveIpCustomers: areaCustomers.filter((c: any) => c.live_ip_enabled).length,
-          iptvRevenue: areaCustomers.reduce((sum: number, c: any) => sum + toNumber(c.iptv_monthly_charges), 0),
-          liveIpRevenue: areaCustomers.reduce((sum: number, c: any) => sum + toNumber(c.live_ip_monthly_fee), 0),
-          discountGiven: areaInvoices.reduce((sum: number, i: any) => sum + toNumber(i.discount_amount), 0),
-          connections: getCount(data[`areaConn_${area.name}`]),
-          staff: getCount(data[`areaStaff_${area.name}`]),
+          iptvRevenue: iptvRevenue,
+          liveIpRevenue: liveIpRevenue,
+          discountGiven: areaInvoices.reduce((sum: number, i: any) => sum + toNumber(i.discount_amount || 0), 0),
         };
-      }).sort((left: any, right: any) => right.totalCustomers - left.totalCustomers) : [];
+      }).sort((left: any, right: any) => right.customers - left.customers) : [];
 
       const responseData = {
         mainStats,
@@ -490,6 +529,7 @@ router.get('/statistics', authenticate, authorize('admin', 'staff'), async (req,
         staffPerformanceData,
         areaDetails,
         overview,
+        todayStats,
         meta: {
           stage,
           isPartial,
@@ -503,11 +543,11 @@ router.get('/statistics', authenticate, authorize('admin', 'staff'), async (req,
       
       res.json(responseData);
     } catch (error) {
-      console.error('Dashboard statistics error:', error);
+      logger.error('Dashboard statistics error:', error);
       res.status(500).json({ error: 'Failed to fetch dashboard statistics' });
     }
   } catch (error) {
-    console.error('Dashboard statistics error:', error);
+    logger.error('Dashboard statistics error:', error);
     res.status(500).json({ error: 'Failed to fetch dashboard statistics' });
   }
 });

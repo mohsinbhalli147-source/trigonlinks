@@ -5,6 +5,7 @@ import { useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import { ToastContainer } from './components/Toast';
 import ComingSoon from './components/ComingSoon';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Lazy load components for better performance
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -16,8 +17,12 @@ const CustomersAll = lazy(() => import('./pages/CustomersAll'));
 const CustomersActive = lazy(() => import('./pages/CustomersActive'));
 const CustomersSuspended = lazy(() => import('./pages/CustomersSuspended'));
 const CustomerProfile = lazy(() => import('./pages/CustomerProfile'));
+const CustomerProfileAdvanced = lazy(() => import('./pages/CustomerProfileAdvanced'));
 const CustomerEdit = lazy(() => import('./pages/CustomerEdit'));
 const CustomerReports = lazy(() => import('./pages/CustomerReports'));
+const BulkOperations = lazy(() => import('./pages/BulkOperations'));
+const AdvancedSearch = lazy(() => import('./pages/AdvancedSearch'));
+const CustomerExport = lazy(() => import('./pages/CustomerExport'));
 const EditPackage = lazy(() => import('./pages/EditPackage'));
 const PackagesAdd = lazy(() => import('./pages/PackagesAdd'));
 const PackagesAll = lazy(() => import('./pages/PackagesAll'));
@@ -98,6 +103,15 @@ const SettingsBackup = lazy(() => import('./pages/SettingsBackup'));
 const SettingsLogs = lazy(() => import('./pages/SettingsLogs'));
 const SettingsGoogle = lazy(() => import('./pages/SettingsGoogle'));
 
+// Helper component to wrap lazy-loaded components with error boundary
+const withErrorBoundary = (Component: React.ComponentType) => {
+  return (props: any) => (
+    <ErrorBoundary>
+      <Component {...props} />
+    </ErrorBoundary>
+  );
+};
+
 
 
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -138,17 +152,27 @@ function PublicOnlyRoute({ children }: { children: JSX.Element }) {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <ToastContainer />
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#0A0F1C] text-[#EAF0FB]">Loading...</div>}>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Router>
+          <ToastContainer />
+          <Suspense fallback={
+          <div className="min-h-screen flex items-center justify-center bg-[#0A0F1C] text-[#EAF0FB]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p>Loading...</p>
+            </div>
+          </div>
+        }>
           <Routes>
             <Route
               path="/login"
               element={
-                <PublicOnlyRoute>
-                  <Login />
-                </PublicOnlyRoute>
+                <ErrorBoundary>
+                  <PublicOnlyRoute>
+                    <Login />
+                  </PublicOnlyRoute>
+                </ErrorBoundary>
               }
             />
             <Route
@@ -180,10 +204,14 @@ function App() {
             <Route path="customers/add" element={<CustomersAdd />} />
             <Route path="customers/all" element={<CustomersAll />} />
             <Route path="customers/profile/:id" element={<CustomerProfile />} />
+            <Route path="customers/profile-advanced/:id" element={<CustomerProfileAdvanced />} />
             <Route path="customers/edit/:id" element={<CustomerEdit />} />
             <Route path="customers/active" element={<CustomersActive />} />
             <Route path="customers/suspended" element={<CustomersSuspended />} />
             <Route path="customers/reports" element={<CustomerReports />} />
+            <Route path="customers/bulk-operations" element={<BulkOperations />} />
+            <Route path="customers/advanced-search" element={<AdvancedSearch />} />
+            <Route path="customers/export" element={<CustomerExport />} />
 
             {/* New Customers Routes */}
             <Route path="new-customers/add" element={<NewCustomersAdd />} />
@@ -297,6 +325,7 @@ function App() {
         </Suspense>
       </Router>
     </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

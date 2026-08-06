@@ -1,9 +1,10 @@
-import express from 'express';
+﻿import express from 'express';
 import { body, validationResult } from 'express-validator';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { AnnouncementsRepository } from '../repositories/AnnouncementsRepository';
 import { getSupabaseClient } from '../database/client';
 import { createBulkNotifications } from '../services/notifications';
+import { logger } from '../utils/logger';
 
 const router = express.Router();
 const announcementsRepo = new AnnouncementsRepository();
@@ -36,7 +37,7 @@ router.get('/', authorize('admin', 'staff'), async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    console.error('Get announcements error:', error);
+    logger.error('Get announcements error:', error);
     res.status(500).json({ error: 'Failed to fetch announcements' });
   }
 });

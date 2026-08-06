@@ -1,4 +1,5 @@
-import express from 'express';
+﻿import express from 'express';
+import { logger } from '../utils/logger';
 import { body, validationResult } from 'express-validator';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { ConnectionsRepository } from '../repositories/ConnectionsRepository';
@@ -67,7 +68,7 @@ router.get('/', authorize('admin', 'staff'), async (req, res) => {
 
     res.json(convertPaginatedResponse(result));
   } catch (error) {
-    console.error('Get connections error:', error);
+    logger.error('Get connections error:', error);
     res.status(500).json({ error: 'Failed to fetch connections' });
   }
 });
@@ -88,7 +89,7 @@ router.get('/:id', authorize('admin', 'staff'), async (req, res) => {
       .order('created_at', { ascending: true });
 
     if (expError) {
-      console.error('Failed to fetch connection expenses:', expError);
+      logger.error('Failed to fetch connection expenses:', expError);
     }
 
     // Map expenses to legacy format for frontend compatibility
@@ -221,7 +222,7 @@ router.post('/', authorize('admin'), [
 
       const { error: expError } = await supabase.from('connection_expenses').insert(expensesToInsert);
       if (expError) {
-        console.error('Failed to save connection expenses:', expError);
+        logger.error('Failed to save connection expenses:', expError);
       }
     }
     
@@ -230,7 +231,7 @@ router.post('/', authorize('admin'), [
     
     res.json(toCamelCase(connection));
   } catch (error) {
-    console.error('Create connection error:', error);
+    logger.error('Create connection error:', error);
     res.status(500).json({ error: 'Failed to create connection' });
   }
 });
@@ -408,7 +409,7 @@ router.put('/:id', authorize('admin'), async (req: AuthRequest, res) => {
             .single();
 
           if (invoiceError) {
-            console.error('Failed to create Connection Fee invoice on approval:', invoiceError);
+            logger.error('Failed to create Connection Fee invoice on approval:', invoiceError);
           } else if (invResult) {
             // B) Auto-create Payment Record
             await supabase.from('payments').insert({
@@ -545,7 +546,7 @@ router.put('/:id', authorize('admin'), async (req: AuthRequest, res) => {
     
     res.json(toCamelCase(connection));
   } catch (error) {
-    console.error('Update connection error:', error);
+    logger.error('Update connection error:', error);
     res.status(500).json({ error: 'Failed to update connection' });
   }
 });

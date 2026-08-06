@@ -6,12 +6,19 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 async function seedDatabase() {
+  // Prevent seeding in production
+  if (process.env.NODE_ENV === 'production') {
+    console.log('ERROR: Seeding is disabled in production mode');
+    console.log('To seed production data, use the production seeding script with proper safeguards');
+    process.exit(1);
+  }
+
   const supabase = createClient(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  console.log('Seeding database...');
+  console.log('Seeding database (development mode only)...');
 
   try {
     // Check if admin user already exists

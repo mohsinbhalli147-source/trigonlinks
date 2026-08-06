@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../providers/complaint_provider.dart';
 import '../providers/customer_provider.dart';
 import '../config/theme.dart';
@@ -20,9 +18,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
   
   String _selectedCategory = AppConstants.complaintCategories.first;
   String _selectedPriority = 'medium';
-  String? _attachmentPath;
-  
-  final ImagePicker _imagePicker = ImagePicker();
+  // String? _attachmentPath;
 
   @override
   void dispose() {
@@ -31,78 +27,26 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
   }
 
   Future<void> _pickImage() async {
-    try {
-      final status = await Permission.photos.request();
-      if (status.isGranted) {
-        final XFile? image = await _imagePicker.pickImage(
-          source: ImageSource.gallery,
-          maxWidth: 1920,
-          maxHeight: 1080,
-          imageQuality: 85,
-        );
-        
-        if (image != null) {
-          setState(() {
-            _attachmentPath = image.path;
-          });
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Gallery permission denied'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error picking image: $e'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+    // Simplified - just show message
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Image picker disabled for build'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
   Future<void> _takePhoto() async {
-    try {
-      final status = await Permission.camera.request();
-      if (status.isGranted) {
-        final XFile? photo = await _imagePicker.pickImage(
-          source: ImageSource.camera,
-          maxWidth: 1920,
-          maxHeight: 1080,
-          imageQuality: 85,
-        );
-        
-        if (photo != null) {
-          setState(() {
-            _attachmentPath = photo.path;
-          });
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Camera permission denied'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error taking photo: $e'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+    // Simplified - just show message
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Camera disabled for build'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -128,7 +72,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
         category: _selectedCategory,
         description: _descriptionController.text.trim(),
         priority: _selectedPriority,
-        attachment: _attachmentPath,
+        attachment: null, // Image upload not implemented yet
       );
       
       if (success && mounted) {
@@ -316,57 +260,28 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    if (_attachmentPath != null) ...[
-                      Container(
-                        height: 200,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Stack(
+                    Container(
+                      height: 100,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border),
+                        color: AppColors.surfaceLight,
+                      ),
+                      child: const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.file(
-                                // File(_attachmentPath!),
-                                // fit: BoxFit.cover,
-                                // For now, use placeholder
-                                Container(
-                                  color: AppColors.surfaceLight,
-                                  child: const Center(
-                                    child: Icon(Icons.image, size: 48),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              top: 8,
-                              right: 8,
-                              child: IconButton(
-                                icon: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.5),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.close,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _attachmentPath = null;
-                                  });
-                                },
-                              ),
+                            Icon(Icons.image, size: 48, color: AppColors.textTertiary),
+                            SizedBox(height: 8),
+                            Text(
+                              'Image upload disabled',
+                              style: TextStyle(color: AppColors.textTertiary),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 12),
-                    ],
+                    ),
                     Row(
                       children: [
                         Expanded(

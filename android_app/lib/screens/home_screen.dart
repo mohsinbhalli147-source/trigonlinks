@@ -23,6 +23,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   
+  String _getInitialLetter(String? name) {
+    if (name == null || name.isEmpty) return 'U';
+    return name.substring(0, 1).toUpperCase();
+  }
+  
   final List<Widget> _screens = [
     const DashboardScreen(),
     const BillsScreen(),
@@ -132,8 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 radius: 20,
                 backgroundColor: AppColors.primary,
                 child: Text(
-                  customerData?['name']?.substring(0, 1).toUpperCase() ?? 
-                  userData?['name']?.substring(0, 1).toUpperCase() ?? 'U',
+                  _getInitialLetter(customerData?['name'] ?? userData?['name']),
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,

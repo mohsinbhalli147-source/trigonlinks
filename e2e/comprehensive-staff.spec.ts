@@ -15,7 +15,7 @@ test.describe('Comprehensive Staff Module Testing', () => {
   });
 
   test('should display staff list', async ({ page }) => {
-    await page.goto('/staff');
+    await page.goto('/staff/all');
     await page.waitForTimeout(2000);
     const staffList = page.locator('table, .grid, .list');
     await expect(staffList.first()).toBeVisible({ timeout: 10000 });

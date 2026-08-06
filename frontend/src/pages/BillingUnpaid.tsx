@@ -7,6 +7,8 @@ import { toast } from '../components/Toast';
 interface UnpaidCustomer {
   id: string;
   name: string;
+  username?: string;
+  cnic?: string;
   phone: string;
   package: string;
   monthlyFee: number;
@@ -50,6 +52,8 @@ export default function BillingUnpaid() {
       return {
         id: inv.id,
         name: inv.customerName || '',
+        username: inv.username || inv.customerUsername || '',
+        cnic: inv.cnic || inv.customerCnic || '',
         phone: inv.customerPhone || inv.mobile || '',
         package: inv.package || '',
         monthlyFee: inv.amount || 0,
@@ -216,6 +220,8 @@ export default function BillingUnpaid() {
                     className="rounded bg-[#1B2540] border-[#232D45]"
                   />
                 </th>
+                <th className="text-left py-3 px-4 text-sm font-bold text-[#14E8B4]">Username</th>
+                <th className="text-left py-3 px-4 text-sm font-bold text-[#14E8B4]">CNIC</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-[#8996AD]">Customer</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-[#8996AD]">Package</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-[#8996AD]">Due Amount</th>
@@ -236,6 +242,8 @@ export default function BillingUnpaid() {
                       className="rounded bg-[#1B2540] border-[#232D45]"
                     />
                   </td>
+                  <td className="py-4 px-4 text-sm font-bold text-[#14E8B4]">{customer.username || 'N/A'}</td>
+                  <td className="py-4 px-4 text-sm font-bold text-[#14E8B4]">{customer.cnic || 'N/A'}</td>
                   <td className="py-4 px-4">
                     <div className="text-sm text-[#EAF0FB] font-medium">{customer.name}</div>
                     <div className="text-xs text-[#8996AD]">{customer.phone}</div>

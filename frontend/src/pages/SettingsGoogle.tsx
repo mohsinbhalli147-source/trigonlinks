@@ -309,15 +309,15 @@ export default function SettingsGoogle() {
           <div className="bg-[#1B2540] border border-[#232D45] rounded-lg p-4">
             <p className="text-[#14E8B4] font-medium mb-2">Authorized JavaScript Origins:</p>
             <code className="text-[#EAF0FB] bg-[#121B2E] px-2 py-1 rounded block">
-              http://localhost:5173
+              https://trigonlinks-pasrur.web.app
             </code>
-            <p className="text-[#8996AD] mt-2 text-xs">Add your production domain when deploying</p>
+            <p className="text-[#8996AD] mt-2 text-xs">Production domain configured</p>
           </div>
 
           <div className="bg-[#1B2540] border border-[#232D45] rounded-lg p-4">
             <p className="text-[#14E8B4] font-medium mb-2">Authorized Redirect URI:</p>
             <code className="text-[#EAF0FB] bg-[#121B2E] px-2 py-1 rounded block">
-              http://localhost:5173/settings/google/callback
+              https://trigonlinks-pasrur.web.app/settings/google/callback
             </code>
             <p className="text-[#8996AD] mt-2 text-xs">Update with your production URL when deploying</p>
           </div>

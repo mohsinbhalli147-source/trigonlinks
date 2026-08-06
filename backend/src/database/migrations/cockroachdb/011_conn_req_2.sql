@@ -1,0 +1,1 @@
+ALTER TABLE connection_requests ADD COLUMN IF NOT EXISTS customer_mobile VARCHAR(50);

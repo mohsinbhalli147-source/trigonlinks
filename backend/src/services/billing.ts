@@ -5,6 +5,7 @@ import { PackagesRepository } from '../repositories/PackagesRepository';
 import { PaymentsRepository } from '../repositories/PaymentsRepository';
 import { getSupabaseClient } from '../database/client';
 import { createNotification } from './notifications';
+import { logger } from '../utils/logger';
 
 const invoicesRepo = new InvoicesRepository();
 const customersRepo = new CustomersRepository();
@@ -201,7 +202,7 @@ export const generateMonthlyBills = async (adminUserId: string, forceAll: boolea
         billsGenerated++;
 
       } catch (error) {
-        console.error(`Error generating bill for customer ${customer.name}:`, error);
+        logger.error(`Error generating bill for customer ${customer.name}:`, error);
         errors.push(`Failed to generate bill for ${customer.name}: ${error}`);
       }
     }
@@ -214,7 +215,7 @@ export const generateMonthlyBills = async (adminUserId: string, forceAll: boolea
     };
 
   } catch (error) {
-    console.error('Error in generateMonthlyBills:', error);
+    logger.error('Error in generateMonthlyBills:', error);
     return {
       success: false,
       message: 'Failed to generate monthly bills',
@@ -346,7 +347,7 @@ export const generateCustomerBill = async (
     } as any;
 
   } catch (error) {
-    console.error('Error in generateCustomerBill:', error);
+    logger.error('Error in generateCustomerBill:', error);
     return {
       success: false,
       message: 'Failed to generate customer bill',
@@ -472,7 +473,7 @@ export const processPayment = async (
     };
 
   } catch (error) {
-    console.error('Error in processPayment:', error);
+    logger.error('Error in processPayment:', error);
     return {
       success: false,
       message: 'Failed to process payment'

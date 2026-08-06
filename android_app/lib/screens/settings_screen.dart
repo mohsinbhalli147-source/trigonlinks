@@ -162,11 +162,12 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   _buildContactTile(
+                    context: context,
                     icon: Icons.phone,
                     title: 'Call Support',
-                    subtitle: AppConfig.supportPhone,
+                    subtitle: AppConstants.supportPhone,
                     onTap: () async {
-                      final uri = Uri.parse('tel:${AppConfig.supportPhone}');
+                      final uri = Uri.parse('tel:${AppConstants.supportPhone}');
                       if (await canLaunchUrl(uri)) {
                         await launchUrl(uri);
                       }
@@ -174,11 +175,12 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   const Divider(),
                   _buildContactTile(
+                    context: context,
                     icon: Icons.email,
                     title: 'Email Support',
-                    subtitle: AppConfig.supportEmail,
+                    subtitle: AppConstants.supportEmail,
                     onTap: () async {
-                      final uri = Uri.parse('mailto:${AppConfig.supportEmail}');
+                      final uri = Uri.parse('mailto:${AppConstants.supportEmail}');
                       if (await canLaunchUrl(uri)) {
                         await launchUrl(uri);
                       }
@@ -186,9 +188,10 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   const Divider(),
                   _buildContactTile(
+                    context: context,
                     icon: Icons.chat,
                     title: 'WhatsApp',
-                    subtitle: AppConfig.whatsappNumber,
+                    subtitle: AppConstants.whatsappNumber,
                     onTap: () async {
                       final uri = Uri.parse('https://wa.me/${AppConfig.whatsappNumber.replaceAll(RegExp(r'[^\d]'), '')}');
                       if (await canLaunchUrl(uri)) {
@@ -225,6 +228,7 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   _buildLegalTile(
+                    context: context,
                     icon: Icons.description,
                     title: 'Terms of Service',
                     onTap: () {
@@ -233,6 +237,7 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   const Divider(),
                   _buildLegalTile(
+                    context: context,
                     icon: Icons.privacy_tip,
                     title: 'Privacy Policy',
                     onTap: () {
@@ -360,6 +365,7 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Widget _buildContactTile({
+    required BuildContext context,
     required IconData icon,
     required String title,
     required String subtitle,
@@ -413,6 +419,7 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Widget _buildLegalTile({
+    required BuildContext context,
     required IconData icon,
     required String title,
     required VoidCallback onTap,

@@ -1,4 +1,5 @@
-import express from 'express';
+﻿import express from 'express';
+import { logger } from '../utils/logger';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { getSupabaseClient } from '../database/client';
 import {
@@ -43,7 +44,7 @@ router.get('/', async (req: AuthRequest, res) => {
 
     res.json({ notifications });
   } catch (error) {
-    console.error('Get notifications error:', error);
+    logger.error('Get notifications error:', error);
     res.status(500).json({ error: 'Failed to fetch notifications' });
   }
 });
@@ -65,7 +66,7 @@ router.get('/unread-count', async (req: AuthRequest, res) => {
     const count = await getUnreadNotificationCount(user.id);
     res.json({ count });
   } catch (error) {
-    console.error('Get unread count error:', error);
+    logger.error('Get unread count error:', error);
     res.status(500).json({ error: 'Failed to fetch unread count' });
   }
 });
@@ -74,10 +75,27 @@ router.get('/unread-count', async (req: AuthRequest, res) => {
 router.put('/:id/read', async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
+    const firebaseUid = req.user?.uid;
+    if (!firebaseUid) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Get database user ID from Firebase UID
+    const { data: user } = await supabase.from('users').select('id').eq('uid', firebaseUid).limit(1).single();
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Verify notification belongs to user
+    const { data: notification } = await supabase.from('notifications').select('user_id').eq('id', id).limit(1).single();
+    if (!notification || notification.user_id !== user.id) {
+      return res.status(403).json({ error: 'Notification not found or access denied' });
+    }
+
     await markNotificationAsRead(id);
     res.json({ message: 'Notification marked as read' });
   } catch (error) {
-    console.error('Mark notification as read error:', error);
+    logger.error('Mark notification as read error:', error);
     res.status(500).json({ error: 'Failed to mark notification as read' });
   }
 });
@@ -99,7 +117,7 @@ router.put('/read-all', async (req: AuthRequest, res) => {
     await markAllNotificationsAsRead(user.id);
     res.json({ message: 'All notifications marked as read' });
   } catch (error) {
-    console.error('Mark all as read error:', error);
+    logger.error('Mark all as read error:', error);
     res.status(500).json({ error: 'Failed to mark all as read' });
   }
 });
@@ -111,7 +129,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
     await deleteNotification(id);
     res.json({ message: 'Notification deleted successfully' });
   } catch (error) {
-    console.error('Delete notification error:', error);
+    logger.error('Delete notification error:', error);
     res.status(500).json({ error: 'Failed to delete notification' });
   }
 });
@@ -140,7 +158,7 @@ router.post('/', async (req: AuthRequest, res) => {
 
     res.status(201).json({ id: notificationId, message: 'Notification created successfully' });
   } catch (error) {
-    console.error('Create notification error:', error);
+    logger.error('Create notification error:', error);
     res.status(500).json({ error: 'Failed to create notification' });
   }
 });
@@ -155,7 +173,7 @@ router.post('/reminders/unpaid-bills', async (req: AuthRequest, res) => {
     await createUnpaidBillReminder();
     res.json({ message: 'Unpaid bill reminders created successfully' });
   } catch (error) {
-    console.error('Create unpaid bill reminders error:', error);
+    logger.error('Create unpaid bill reminders error:', error);
     res.status(500).json({ error: 'Failed to create unpaid bill reminders' });
   }
 });
@@ -170,7 +188,7 @@ router.post('/reminders/overdue-bills', async (req: AuthRequest, res) => {
     await createOverdueBillNotifications();
     res.json({ message: 'Overdue bill notifications created successfully' });
   } catch (error) {
-    console.error('Create overdue bill notifications error:', error);
+    logger.error('Create overdue bill notifications error:', error);
     res.status(500).json({ error: 'Failed to create overdue bill notifications' });
   }
 });
@@ -185,7 +203,7 @@ router.post('/cleanup', async (req: AuthRequest, res) => {
     const count = await cleanupExpiredNotifications();
     res.json({ message: `Cleaned up ${count} expired notifications` });
   } catch (error) {
-    console.error('Cleanup expired notifications error:', error);
+    logger.error('Cleanup expired notifications error:', error);
     res.status(500).json({ error: 'Failed to cleanup expired notifications' });
   }
 });

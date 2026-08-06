@@ -10,12 +10,12 @@ test.describe('Comprehensive Areas Module Testing', () => {
   });
 
   test('should navigate to areas page', async ({ page }) => {
-    await page.goto('/areas');
-    await expect(page).toHaveURL('/areas');
+    await page.goto('/areas/all');
+    await expect(page).toHaveURL('/areas/all');
   });
 
   test('should display areas list', async ({ page }) => {
-    await page.goto('/areas');
+    await page.goto('/areas/all');
     await page.waitForTimeout(2000);
     const areasList = page.locator('table, .grid, .list');
     await expect(areasList.first()).toBeVisible({ timeout: 10000 });

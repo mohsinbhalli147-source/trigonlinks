@@ -6,6 +6,8 @@ import { areasApi, customersApi } from '../services/api';
 interface AreaCustomer {
   id: string;
   name: string;
+  username?: string;
+  cnic?: string;
   phone: string;
   address: string;
   package: string;
@@ -91,6 +93,8 @@ export default function AreaCustomers() {
       const areaCustomers = dataArray.map((c: any) => ({
         id: c.id,
         name: c.name,
+        username: c.username || '',
+        cnic: c.cnic || '',
         phone: c.phone || c.mobile || '',
         address: c.address || '',
         package: c.package || '',
@@ -272,6 +276,8 @@ export default function AreaCustomers() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-[#232D45]">
+                <th className="text-left py-3 px-4 text-sm font-bold text-[#14E8B4]">Username</th>
+                <th className="text-left py-3 px-4 text-sm font-bold text-[#14E8B4]">CNIC</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-[#8996AD]">Customer</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-[#8996AD]">Address</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-[#8996AD]">Package</th>
@@ -285,6 +291,8 @@ export default function AreaCustomers() {
             <tbody>
               {filteredCustomers.map((customer) => (
                 <tr key={customer.id} className="border-b border-[#232D45] hover:bg-[#1B2540]/50">
+                  <td className="py-3 px-4 text-sm font-bold text-[#14E8B4]">{customer.username || 'N/A'}</td>
+                  <td className="py-3 px-4 text-sm font-bold text-[#14E8B4]">{customer.cnic || 'N/A'}</td>
                   <td className="py-3 px-4">
                     <div>
                       <div className="font-semibold text-[#EAF0FB]">{customer.name}</div>
@@ -312,7 +320,7 @@ export default function AreaCustomers() {
               ))}
               {filteredCustomers.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-[#5C6B85]">
+                  <td colSpan={10} className="py-8 text-center text-[#5C6B85]">
                     No customers found
                   </td>
                 </tr>

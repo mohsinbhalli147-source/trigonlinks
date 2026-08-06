@@ -34,7 +34,7 @@ export default function Billing() {
   const loadBills = async () => {
     setLoading(true);
     setError('');
-    const result = await invoicesApi.getAll({ page: '1', limit: '100' });
+    const result = await invoicesApi.getAll({ page: '1', limit: '1000' });
     if (result.success) {
       setBills(result.data?.data || result.data || []);
     } else {
@@ -67,6 +67,147 @@ export default function Billing() {
       case 'pending': return 'bg-[#F6B93B]/10 text-[#F6B93B]';
       case 'overdue': return 'bg-[#F5514B]/10 text-[#F5514B]';
       default: return 'bg-[#5C6B85]/10 text-[#5C6B85]';
+    }
+  };
+
+  const handlePrint = (bill: Bill) => {
+    const printContent = `
+      <html>
+        <head>
+          <title>Invoice #${bill.invoiceNumber || bill.id}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+            .header h1 { margin: 0; color: #333; }
+            .header p { margin: 5px 0; color: #666; }
+            .invoice-details { margin: 20px 0; }
+            .invoice-details h2 { margin: 0 0 15px 0; color: #333; }
+            .invoice-details p { margin: 8px 0; color: #555; }
+            .total { font-size: 24px; font-weight: bold; text-align: right; margin: 30px 0; color: #14E8B4; }
+            .footer { margin-top: 50px; text-align: center; color: #666; font-size: 12px; }
+            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+            th { background-color: #f4f4f4; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>TrigonLinks ISP</h1>
+            <p>PASRUR, PUNJAB, PAKISTAN</p>
+            <p>Phone: +92-XXX-XXXXXXX | Email: info@trigonlinks.com</p>
+          </div>
+          <div class="invoice-details">
+            <h2>INVOICE #${bill.invoiceNumber || bill.id}</h2>
+            <table>
+              <tr>
+                <th>Customer Name</th>
+                <td>${bill.customerName}</td>
+              </tr>
+              <tr>
+                <th>Invoice Month</th>
+                <td>${bill.month || 'N/A'}</td>
+              </tr>
+              <tr>
+                <th>Invoice Year</th>
+                <td>${bill.year || new Date(bill.createdAt).getFullYear()}</td>
+              </tr>
+              <tr>
+                <th>Due Date</th>
+                <td>${bill.dueDate ? (typeof bill.dueDate === 'string' ? bill.dueDate : new Date(bill.dueDate).toLocaleDateString()) : 'N/A'}</td>
+              </tr>
+              <tr>
+                <th>Status</th>
+                <td style="text-transform: uppercase; font-weight: bold; color: ${bill.status === 'paid' ? '#14E8B4' : bill.status === 'overdue' ? '#F5514B' : '#F6B93B'}">${bill.status}</td>
+              </tr>
+            </table>
+            <div class="total">
+              Total Amount: Rs. ${(bill.totalAmount || bill.amount || 0).toLocaleString()}
+            </div>
+            <p style="color: #666; font-size: 14px;">Generated on: ${new Date(bill.createdAt).toLocaleString()}</p>
+          </div>
+          <div class="footer">
+            <p>This is a computer-generated invoice. No signature required.</p>
+            <p>For any queries, please contact our support team.</p>
+          </div>
+        </body>
+      </html>
+    `;
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
+  const handleDownload = (bill: Bill) => {
+    const printContent = `
+      <html>
+        <head>
+          <title>Invoice #${bill.invoiceNumber || bill.id}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+            .header h1 { margin: 0; color: #333; }
+            .header p { margin: 5px 0; color: #666; }
+            .invoice-details { margin: 20px 0; }
+            .invoice-details h2 { margin: 0 0 15px 0; color: #333; }
+            .invoice-details p { margin: 8px 0; color: #555; }
+            .total { font-size: 24px; font-weight: bold; text-align: right; margin: 30px 0; color: #14E8B4; }
+            .footer { margin-top: 50px; text-align: center; color: #666; font-size: 12px; }
+            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+            th { background-color: #f4f4f4; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>TrigonLinks ISP</h1>
+            <p>PASRUR, PUNJAB, PAKISTAN</p>
+            <p>Phone: +92-XXX-XXXXXXX | Email: info@trigonlinks.com</p>
+          </div>
+          <div class="invoice-details">
+            <h2>INVOICE #${bill.invoiceNumber || bill.id}</h2>
+            <table>
+              <tr>
+                <th>Customer Name</th>
+                <td>${bill.customerName}</td>
+              </tr>
+              <tr>
+                <th>Invoice Month</th>
+                <td>${bill.month || 'N/A'}</td>
+              </tr>
+              <tr>
+                <th>Invoice Year</th>
+                <td>${bill.year || new Date(bill.createdAt).getFullYear()}</td>
+              </tr>
+              <tr>
+                <th>Due Date</th>
+                <td>${bill.dueDate ? (typeof bill.dueDate === 'string' ? bill.dueDate : new Date(bill.dueDate).toLocaleDateString()) : 'N/A'}</td>
+              </tr>
+              <tr>
+                <th>Status</th>
+                <td style="text-transform: uppercase; font-weight: bold; color: ${bill.status === 'paid' ? '#14E8B4' : bill.status === 'overdue' ? '#F5514B' : '#F6B93B'}">${bill.status}</td>
+              </tr>
+            </table>
+            <div class="total">
+              Total Amount: Rs. ${(bill.totalAmount || bill.amount || 0).toLocaleString()}
+            </div>
+            <p style="color: #666; font-size: 14px;">Generated on: ${new Date(bill.createdAt).toLocaleString()}</p>
+          </div>
+          <div class="footer">
+            <p>This is a computer-generated invoice. No signature required.</p>
+            <p>For any queries, please contact our support team.</p>
+          </div>
+        </body>
+      </html>
+    `;
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      // For download, we'll use print dialog - user can save as PDF
+      printWindow.print();
     }
   };
 
@@ -178,18 +319,31 @@ export default function Billing() {
                   </td>
                   <td className="py-3 px-4 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <button className="p-2 text-[#8996AD] hover:text-[#EAF0FB] hover:bg-[#232D45] rounded-lg transition-colors" title="Download">
+                      <button 
+                        onClick={() => handleDownload(bill)}
+                        className="p-2 text-[#8996AD] hover:text-[#EAF0FB] hover:bg-[#232D45] rounded-lg transition-colors" 
+                        title="Download PDF"
+                      >
                         <Download className="w-4 h-4" />
                       </button>
-                      <button className="p-2 text-[#8996AD] hover:text-[#EAF0FB] hover:bg-[#232D45] rounded-lg transition-colors" title="Print">
+                      <button 
+                        onClick={() => handlePrint(bill)}
+                        className="p-2 text-[#8996AD] hover:text-[#EAF0FB] hover:bg-[#232D45] rounded-lg transition-colors" 
+                        title="Print Invoice"
+                      >
                         <Printer className="w-4 h-4" />
                       </button>
-                      <button className="p-2 text-[#8996AD] hover:text-[#EAF0FB] hover:bg-[#232D45] rounded-lg transition-colors">
+                      <button 
+                        onClick={() => navigate(`/billing/edit/${bill.id}`)}
+                        className="p-2 text-[#8996AD] hover:text-[#EAF0FB] hover:bg-[#232D45] rounded-lg transition-colors"
+                        title="Edit"
+                      >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button 
                         onClick={() => handleDelete(bill.id)}
                         className="p-2 text-[#8996AD] hover:text-[#F5514B] hover:bg-[#232D45] rounded-lg transition-colors"
+                        title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

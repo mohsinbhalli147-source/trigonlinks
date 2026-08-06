@@ -189,30 +189,31 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ),
                     if (createdAt != null) ...[
                       const SizedBox(height: 8),
-                  Text(
-                    DateFormat('MMM dd, yyyy • HH:mm').format(
-                      DateTime.fromMillisecondsSinceEpoch(createdAt),
-                    ),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textTertiary,
-                    ),
-                  ),
-                ],
-              ],
-            ),
+                      Text(
+                        DateFormat('MMM dd, yyyy • HH:mm').format(
+                          DateTime.fromMillisecondsSinceEpoch(createdAt),
+                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.delete_outline, size: 20),
+                color: AppColors.textTertiary,
+                onPressed: () async {
+                  await context.read<NotificationProvider>().deleteNotification(id);
+                },
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, size: 20),
-            color: AppColors.textTertiary,
-            onPressed: () async {
-              await context.read<NotificationProvider>().deleteNotification(id);
-            },
-          ),
-        ],
+        ),
       ),
-    ),
-  );
+    );
   }
 
   void _showNotificationDetails(dynamic notification) {

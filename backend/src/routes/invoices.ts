@@ -1,4 +1,5 @@
-import express from 'express';
+﻿import express from 'express';
+import { logger } from '../utils/logger';
 import { body, validationResult } from 'express-validator';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { InvoicesRepository } from '../repositories/InvoicesRepository';
@@ -48,7 +49,7 @@ router.get('/', authorize('admin', 'staff', 'customer'), async (req: AuthRequest
 
     res.json(result);
   } catch (error) {
-    console.error('Get invoices error:', error);
+    logger.error('Get invoices error:', error);
     res.status(500).json({ error: 'Failed to fetch invoices' });
   }
 });
@@ -71,7 +72,7 @@ router.get('/approval-requests', authorize('admin'), async (req: AuthRequest, re
       pagination: result.pagination,
     });
   } catch (error) {
-    console.error('Get approval requests error:', error);
+    logger.error('Get approval requests error:', error);
     res.status(500).json({ error: 'Failed to fetch approval requests' });
   }
 });
@@ -175,7 +176,7 @@ router.post('/', authorize('admin'), [
     
     res.json(invoice);
   } catch (error) {
-    console.error('Create invoice error:', error);
+    logger.error('Create invoice error:', error);
     res.status(500).json({ error: 'Failed to create invoice', details: error instanceof Error ? error.message : String(error) });
   }
 });
@@ -257,7 +258,7 @@ router.put('/:id/approve', authorize('admin'), async (req: AuthRequest, res) => 
     cache.deletePattern(/^dashboard:/);
     res.json({ message: 'Payment approved successfully' });
   } catch (error) {
-    console.error('Approve payment error:', error);
+    logger.error('Approve payment error:', error);
     res.status(500).json({ error: 'Failed to approve payment' });
   }
 });
@@ -281,7 +282,7 @@ router.put('/:id/reject', authorize('admin'), async (req: AuthRequest, res) => {
     cache.deletePattern(/^dashboard:/);
     res.json({ message: 'Payment rejected' });
   } catch (error) {
-    console.error('Reject payment error:', error);
+    logger.error('Reject payment error:', error);
     res.status(500).json({ error: 'Failed to reject payment' });
   }
 });

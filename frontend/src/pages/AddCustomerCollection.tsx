@@ -6,6 +6,8 @@ import { customersApi, invoicesApi } from '../services/api';
 interface Customer {
   id: string;
   name: string;
+  username?: string;
+  cnic?: string;
   mobile: string;
   area: string;
   package: string;
@@ -153,7 +155,9 @@ export default function AddCustomerCollection() {
               >
                 <div className="flex items-center justify-between">
                   <div>
+                    <p className="font-bold text-[#14E8B4] text-sm">{customer.username || 'N/A'}</p>
                     <p className="font-medium text-[#EAF0FB]">{customer.name}</p>
+                    <p className="text-sm text-[#5C6B85]">{customer.cnic || 'N/A'}</p>
                     <p className="text-sm text-[#5C6B85]">{customer.mobile}</p>
                   </div>
                   <div className="text-right">
@@ -173,11 +177,25 @@ export default function AddCustomerCollection() {
           {selectedCustomer ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Customer Info */}
-              <div className="bg-[#1B2540] rounded-lg p-4">
+              <div className="bg-[#1B2540] rounded-lg p-4 space-y-3">
                 <div className="flex items-center gap-3">
                   <User className="w-5 h-5 text-[#8996AD]" />
                   <div>
-                    <p className="text-sm text-[#5C6B85]">Selected Customer</p>
+                    <p className="text-sm text-[#5C6B85]">Username</p>
+                    <p className="text-[#14E8B4] font-bold">{selectedCustomer.username || 'N/A'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <User className="w-5 h-5 text-[#8996AD]" />
+                  <div>
+                    <p className="text-sm text-[#5C6B85]">CNIC</p>
+                    <p className="text-[#14E8B4] font-bold">{selectedCustomer.cnic || 'N/A'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <User className="w-5 h-5 text-[#8996AD]" />
+                  <div>
+                    <p className="text-sm text-[#5C6B85]">Customer</p>
                     <p className="text-[#EAF0FB]">{selectedCustomer.name}</p>
                   </div>
                 </div>

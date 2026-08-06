@@ -10,12 +10,12 @@ test.describe('Comprehensive Packages Module Testing', () => {
   });
 
   test('should navigate to packages page', async ({ page }) => {
-    await page.goto('/packages');
-    await expect(page).toHaveURL('/packages');
+    await page.goto('/packages/all');
+    await expect(page).toHaveURL('/packages/all');
   });
 
   test('should display packages list', async ({ page }) => {
-    await page.goto('/packages');
+    await page.goto('/packages/all');
     await page.waitForTimeout(2000);
     const packagesList = page.locator('table, .grid, .list');
     await expect(packagesList.first()).toBeVisible({ timeout: 10000 });

@@ -50,7 +50,7 @@ export default function BillingReceive() {
   const loadCustomers = async () => {
     setLoading(true);
     setError('');
-    const result = await customersApi.getAll({ limit: 200 });
+    const result = await customersApi.getAll({ limit: 1000 });
     if (result.success) {
       setCustomers(result.data?.data || result.data || []);
     } else {
@@ -115,6 +115,74 @@ export default function BillingReceive() {
       case 'unpaid': return 'bg-[#F6B93B]/20 text-[#F6B93B]';
       case 'overdue': return 'bg-[#F5514B]/20 text-[#F5514B]';
       default: return 'bg-[#8996AD]/20 text-[#8996AD]';
+    }
+  };
+
+  const handlePrintReceipt = () => {
+    if (!selectedCustomer) return;
+    
+    const printContent = `
+      <html>
+        <head>
+          <title>Payment Receipt</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+            .receipt { border: 2px solid #333; padding: 20px; max-width: 350px; margin: 0 auto; background: white; }
+            .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px; }
+            .header h1 { margin: 0; color: #333; font-size: 24px; }
+            .header p { margin: 5px 0; color: #666; font-size: 12px; }
+            .customer-info { margin-bottom: 15px; }
+            .customer-info p { margin: 5px 0; color: #333; font-size: 14px; }
+            .customer-info strong { color: #000; }
+            .amount { font-size: 28px; font-weight: bold; text-align: center; margin: 20px 0; color: #14E8B4; border: 2px solid #14E8B4; padding: 10px; }
+            .details { margin: 15px 0; }
+            .details p { margin: 8px 0; color: #333; font-size: 14px; }
+            .details strong { color: #000; }
+            .signature { margin-top: 30px; text-align: center; }
+            .signature-line { border-top: 1px solid #333; width: 200px; margin: 0 auto; padding-top: 5px; }
+            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 11px; }
+          </style>
+        </head>
+        <body>
+          <div class="receipt">
+            <div class="header">
+              <h1>TrigonLinks ISP</h1>
+              <p>PASRUR, PUNJAB, PAKISTAN</p>
+              <p>Phone: +92-XXX-XXXXXXX</p>
+            </div>
+            <div class="customer-info">
+              <p><strong>Customer:</strong> ${selectedCustomer.name}</p>
+              <p><strong>Mobile:</strong> ${selectedCustomer.mobile}</p>
+              <p><strong>Package:</strong> ${selectedCustomer.package}</p>
+            </div>
+            <div class="amount">
+              Rs. ${paymentAmount}
+            </div>
+            <div class="details">
+              <p><strong>Payment Method:</strong> ${paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1)}</p>
+              <p><strong>Date:</strong> ${paymentDate}</p>
+              <p><strong>Monthly Fee:</strong> Rs. ${selectedCustomer.fee}</p>
+              ${discountAmount ? `<p><strong>Discount:</strong> Rs. ${discountAmount} (${discountReason})</p>` : ''}
+              <p><strong>Net Amount:</strong> Rs. ${Math.max(0, (parseFloat(String(selectedCustomer.fee)) - (parseFloat(discountAmount) || 0))).toFixed(2)}</p>
+            </div>
+            ${notes ? `<p style="margin: 15px 0; color: #666; font-size: 12px;"><strong>Notes:</strong> ${notes}</p>` : ''}
+            <div class="signature">
+              <div class="signature-line">Received By: _______________</div>
+            </div>
+            <div class="footer">
+              <p>Receipt ID: ${Date.now()}</p>
+              <p>Generated on: ${new Date().toLocaleString()}</p>
+              <p>Thank you for your payment!</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
     }
   };
 
@@ -359,6 +427,18 @@ export default function BillingReceive() {
                 <CheckCircle className="w-5 h-5" />
                 {submitting ? 'Processing...' : 'Receive Payment'}
               </button>
+
+              {/* Print Receipt Button */}
+              {successMsg && (
+                <button
+                  type="button"
+                  onClick={handlePrintReceipt}
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#8B5CF6] text-white font-semibold rounded-lg hover:bg-[#7C3AED] transition-colors"
+                >
+                  <Receipt className="w-5 h-5" />
+                  Print Receipt
+                </button>
+              )}
             </form>
           )}
         </div>

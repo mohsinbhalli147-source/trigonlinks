@@ -31,10 +31,11 @@ dependencies:
   # Authentication & Security
   flutter_secure_storage: ^9.0.0
   
-  # Push Notifications
-  firebase_messaging: ^14.7.10
-  firebase_core: ^2.24.2
-  flutter_local_notifications: ^16.3.0
+  # Push Notifications (disabled for build)
+  # firebase_messaging: ^14.7.10
+  # firebase_core: ^2.24.2
+  # flutter_local_notifications: ^14.0.0
+  # timezone: ^0.9.2
   
   # PDF Generation
   pdf: ^3.10.7
@@ -42,15 +43,15 @@ dependencies:
   path_provider: ^2.1.2
   
   # Image Handling
-  image_picker: ^1.0.7
-  permission_handler: ^11.2.0
+  # image_picker: ^1.0.7
+  # permission_handler: ^11.2.0
   
   # Utilities
   intl: ^0.18.1
   url_launcher: ^6.2.3
   connectivity_plus: ^5.0.2
   package_info_plus: ^5.0.1
-  timezone: ^0.9.2
+  # timezone: ^0.9.2
   
   # Charts (for usage statistics if needed)
   fl_chart: ^0.66.0
@@ -69,14 +70,3 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/fonts/
-  
-  fonts:
-    - family: Poppins
-      fonts:
-        - asset: assets/fonts/Poppins-Regular.ttf
-        - asset: assets/fonts/Poppins-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/Poppins-SemiBold.ttf
-          weight: 600
-        - asset: assets/fonts/Poppins-Bold.ttf
-          weight: 700

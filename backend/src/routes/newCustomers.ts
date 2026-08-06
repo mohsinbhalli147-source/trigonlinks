@@ -1,4 +1,5 @@
-import express from 'express';
+﻿import express from 'express';
+import { logger } from '../utils/logger';
 import { body, validationResult } from 'express-validator';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { getSupabaseClient } from '../database/client';
@@ -81,7 +82,7 @@ router.get('/', authorize('admin', 'staff'), async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get new customers error:', error);
+    logger.error('Get new customers error:', error);
     res.status(500).json({ error: 'Failed to fetch new customers' });
   }
 });
@@ -152,7 +153,7 @@ router.post('/', authorize('admin'), [
       ...connectionData 
     });
   } catch (error) {
-    console.error('Create new customer error:', error);
+    logger.error('Create new customer error:', error);
     res.status(500).json({ error: 'Failed to create new customer' });
   }
 });
@@ -202,7 +203,7 @@ router.get('/expenses', authorize('admin', 'staff'), async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get new customer expenses error:', error);
+    logger.error('Get new customer expenses error:', error);
     res.status(500).json({ error: 'Failed to fetch new customer expenses' });
   }
 });
@@ -299,7 +300,7 @@ router.get('/collections', authorize('admin', 'staff'), async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get new customer collections error:', error);
+    logger.error('Get new customer collections error:', error);
     res.status(500).json({ error: 'Failed to fetch new customer collections' });
   }
 });
@@ -321,7 +322,7 @@ router.get('/:id', authorize('admin', 'staff'), async (req, res) => {
     
     res.json(data[0]);
   } catch (error) {
-    console.error('Get new customer error:', error);
+    logger.error('Get new customer error:', error);
     res.status(500).json({ error: 'Failed to fetch new customer' });
   }
 });
@@ -350,7 +351,7 @@ router.put('/:id', authorize('admin'), async (req: AuthRequest, res) => {
     
     res.json(data[0]);
   } catch (error) {
-    console.error('Update new customer error:', error);
+    logger.error('Update new customer error:', error);
     res.status(500).json({ error: 'Failed to update new customer' });
   }
 });
@@ -367,7 +368,7 @@ router.delete('/:id', authorize('admin'), async (req, res) => {
     
     res.json({ message: 'New customer deleted successfully' });
   } catch (error) {
-    console.error('Delete new customer error:', error);
+    logger.error('Delete new customer error:', error);
     res.status(500).json({ error: 'Failed to delete new customer' });
   }
 });

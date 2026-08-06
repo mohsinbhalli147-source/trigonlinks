@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+
+dotenv.config();
 import { 
   generalRateLimiter, 
   authRateLimiter, 
@@ -16,6 +18,7 @@ import {
 
 import { logger } from './utils/logger';
 import { runStartupMigrations } from './database/migrations/startup';
+import { getBackupScheduler } from './services/backup-scheduler';
 
 // Global error handlers for uncaught exceptions and unhandled rejections
 process.on('uncaughtException', (error) => {
@@ -36,27 +39,43 @@ const PORT = process.env.PORT || 5000;
 // Security middleware
 app.use(securityHeaders);
 app.use(securityLogger);
-// app.use(sanitizeInput); // Temporarily disabled for testing
+app.use(sanitizeInput);
 app.use(generalRateLimiter);
 app.use(slowDownMiddleware);
 
-// Standard middleware
-app.use(helmet());
+// Allow all origins for development
+const allowedOrigins = ['*'];
+
+// Allow additional origins from environment variable
+if (process.env.ALLOWED_ORIGINS) {
+  const additionalOrigins = process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim());
+  allowedOrigins.push(...additionalOrigins);
+}
+
+// CORS middleware - must come before helmet
 app.use(cors({
-  origin: [
-    'https://trigonlink.pakdata.net',
-    'https://trigonlinks-pasrur.web.app',
-    'https://trigonlink.web.app',
-    'https://lightgreen-rhinoceros-358548.hostingersite.com',
-    'http://localhost:3000',
-    'http://localhost:3005',
-    'http://localhost:5173',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:3005',
-    'http://127.0.0.1:5173'
-  ],
-  credentials: true
+  origin: (origin, callback) => {
+    // Allow all origins for development
+    callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
+
+// Handle preflight requests explicitly
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(200);
+});
+
+// Standard middleware - temporarily disabled helmet for CORS debugging
+// app.use(helmet({
+//   crossOriginResourcePolicy: { policy: "cross-origin" }
+// }));
 app.use(compression());
 app.use(morgan('dev'));
 app.use(express.json());
@@ -68,6 +87,7 @@ import userRoutes from './routes/users';
 import billingRoutes from './routes/billing';
 import notificationRoutes from './routes/notifications';
 import customerRoutes from './routes/customers';
+import customerAdvancedRoutes from './routes/customer-advanced';
 import packageRoutes from './routes/packages';
 import connectionRoutes from './routes/connections';
 import invoiceRoutes from './routes/invoices';
@@ -93,6 +113,7 @@ app.use('/api/users', apiRateLimiter, userRoutes);
 app.use('/api/billing', apiRateLimiter, billingRoutes);
 app.use('/api/notifications', apiRateLimiter, notificationRoutes);
 app.use('/api/customers', apiRateLimiter, customerRoutes);
+app.use('/api/customers/advanced', apiRateLimiter, customerAdvancedRoutes);
 app.use('/api/packages', apiRateLimiter, packageRoutes);
 app.use('/api/connections', apiRateLimiter, connectionRoutes);
 app.use('/api/invoices', apiRateLimiter, invoiceRoutes);
@@ -148,12 +169,27 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Start server with error handling
 const startServer = async () => {
-  // Skip database migrations - using Supabase REST API only
-  logger.info('[MIGRATION] Skipping migrations - using Supabase REST API for all database operations');
+  // Run database migrations on startup to ensure schema is up-to-date
+  logger.info('[MIGRATION] Starting database migrations...');
+  const migrationSuccess = await runStartupMigrations();
+  
+  if (!migrationSuccess) {
+    logger.warn('[MIGRATION] Migration check completed with warnings. Server will start but schema may not be fully up-to-date.');
+  }
+
+  // Start automated backup scheduler in production
+  // Temporarily disabled for development
+  // if (process.env.NODE_ENV === 'production') {
+  //   const backupInterval = parseInt(process.env.BACKUP_INTERVAL_HOURS || '24');
+  //   const backupScheduler = getBackupScheduler();
+  //   backupScheduler.start(backupInterval);
+  //   logger.info(`[BACKUP] Automated backup scheduler started (interval: ${backupInterval} hours)`);
+  // }
 
   server = app.listen(PORT, () => {
     logger.info(`[SERVER] Server running on port ${PORT}`);
     logger.info(`[SERVER] Health check available at http://localhost:${PORT}/health`);
+    logger.info(`[SERVER] Environment: ${process.env.NODE_ENV || 'development'}`);
   }).on('error', (error: any) => {
     if (error.code === 'EADDRINUSE') {
       logger.error(`[FATAL] Port ${PORT} is already in use. Please check if another instance is running.`);

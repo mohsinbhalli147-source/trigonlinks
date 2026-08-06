@@ -12,7 +12,10 @@
     "migrate-firestore": "ts-node scripts/migrate-firestore-to-postgres.ts",
     "update-customers": "ts-node scripts/update-customers.ts",
     "generate-bills": "ts-node scripts/generate-all-bills.ts",
-    "generate-bills-force": "ts-node scripts/generate-all-bills.ts --force"
+    "generate-bills-force": "ts-node scripts/generate-all-bills.ts --force",
+    "migrate-cockroachdb": "ts-node src/database/migrations/run-cockroachdb-migrations.ts",
+    "test-cockroachdb": "ts-node src/database/migrations/test-cockroachdb-migration.ts",
+    "test-connection": "ts-node -e \"import('./src/database/client').then(({ testConnection }) => testConnection().then(() => process.exit(0)).catch(() => process.exit(1))\""
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",

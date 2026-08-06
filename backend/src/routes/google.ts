@@ -1,10 +1,10 @@
-import express from 'express';
+﻿import express from 'express';
+import { logger } from '../utils/logger';
 import { body, validationResult } from 'express-validator';
 import { authenticate, AuthRequest, authorize } from '../middleware/auth';
 import { googleOAuthService } from '../services/google-oauth';
 import { googleContactsService } from '../services/google-contacts';
 import { getSupabaseClient } from '../database/client';
-import { logger } from '../utils/logger';
 
 const router = express.Router();
 const supabase = getSupabaseClient();

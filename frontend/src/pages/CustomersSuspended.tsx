@@ -6,12 +6,26 @@ import { toast } from '../components/Toast';
 
 interface Customer {
   id: string;
+  uid: string;
   name: string;
+  fatherName?: string;
+  username?: string;
   mobile: string;
+  cnic?: string;
+  email?: string;
+  address?: string;
   fee: number;
   status: 'active' | 'suspended';
   package: string;
   area: string;
+  install_date?: number;
+  billing_date?: number;
+  previous_balance?: number;
+  iptv_enabled: boolean;
+  iptv_monthly_charges: number;
+  live_ip_enabled: boolean;
+  live_ip_address?: string;
+  live_ip_monthly_fee: number;
   createdAt: number;
 }
 
@@ -29,7 +43,7 @@ export default function CustomersSuspended() {
   const loadCustomers = async () => {
     setLoading(true);
     setError('');
-    const result = await customersApi.getAll({ status: 'suspended', limit: 200 });
+    const result = await customersApi.getAll({ status: 'suspended', limit: 100 });
     if (result.success) {
       setCustomers(result.data?.data || []);
     } else {
@@ -40,7 +54,10 @@ export default function CustomersSuspended() {
 
   const filteredCustomers = customers.filter(customer =>
     customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.mobile?.includes(searchTerm)
+    customer.mobile?.includes(searchTerm) ||
+    (customer.cnic && customer.cnic.includes(searchTerm)) ||
+    (customer.address && customer.address.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (customer.live_ip_address && customer.live_ip_address.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const handleDelete = async (id: string) => {
@@ -97,7 +114,7 @@ export default function CustomersSuspended() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#5C6B85]" />
           <input
             type="text"
-            placeholder="Search by name or mobile..."
+            placeholder="Search by name, mobile, CNIC, address, IP..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-[#1B2540] border border-[#232D45] rounded-lg text-[#EAF0FB] focus:outline-none focus:border-[#14E8B4]"
@@ -108,22 +125,38 @@ export default function CustomersSuspended() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-[#232D45]">
-                <th className="text-left py-3 px-4 text-sm font-medium text-[#8996AD]">Name</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-[#8996AD]">Mobile</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-[#8996AD]">Package</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-[#8996AD]">Area</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-[#8996AD]">Fee</th>
-                <th className="text-right py-3 px-4 text-sm font-medium text-[#8996AD]">Actions</th>
+                <th className="text-left py-3 px-2 text-sm font-bold text-[#14E8B4]">Username</th>
+                <th className="text-left py-3 px-2 text-sm font-medium text-[#8996AD]">Name</th>
+                <th className="text-left py-3 px-2 text-sm font-bold text-[#14E8B4]">CNIC</th>
+                <th className="text-left py-3 px-2 text-sm font-medium text-[#8996AD]">Mobile</th>
+                <th className="text-left py-3 px-2 text-sm font-medium text-[#8996AD]">Package</th>
+                <th className="text-left py-3 px-2 text-sm font-medium text-[#8996AD]">Area</th>
+                <th className="text-left py-3 px-2 text-sm font-medium text-[#8996AD]">Monthly Fee</th>
+                <th className="text-left py-3 px-2 text-sm font-medium text-[#8996AD]">IPTV</th>
+                <th className="text-left py-3 px-2 text-sm font-medium text-[#8996AD]">Live IP</th>
+                <th className="text-left py-3 px-2 text-sm font-medium text-[#8996AD]">Pending</th>
+                <th className="text-left py-3 px-2 text-sm font-medium text-[#8996AD]">Conn. Date</th>
+                <th className="text-left py-3 px-2 text-sm font-medium text-[#8996AD]">Bill. Date</th>
+                <th className="text-left py-3 px-2 text-sm font-medium text-[#8996AD]">Address</th>
+                <th className="text-right py-3 px-2 text-sm font-medium text-[#8996AD]">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredCustomers.map((customer) => (
                 <tr key={customer.id} className="border-b border-[#232D45] hover:bg-[#1B2540]/50">
-                  <td className="py-3 px-4 text-sm text-[#EAF0FB]">{customer.name}</td>
-                  <td className="py-3 px-4 text-sm text-[#8996AD]">{customer.mobile}</td>
-                  <td className="py-3 px-4 text-sm text-[#EAF0FB]">{customer.package}</td>
-                  <td className="py-3 px-4 text-sm text-[#8996AD]">{customer.area}</td>
-                  <td className="py-3 px-4 text-sm text-[#EAF0FB]">Rs. {customer.fee}</td>
+                  <td className="py-3 px-2 text-sm font-bold text-[#14E8B4]">{customer.username || 'N/A'}</td>
+                  <td className="py-3 px-2 text-sm text-[#EAF0FB]">{customer.name}</td>
+                  <td className="py-3 px-2 text-sm font-bold text-[#14E8B4]">{customer.cnic || 'N/A'}</td>
+                  <td className="py-3 px-2 text-sm text-[#8996AD]">{customer.mobile}</td>
+                  <td className="py-3 px-2 text-sm text-[#EAF0FB]">{customer.package}</td>
+                  <td className="py-3 px-2 text-sm text-[#8996AD]">{customer.area}</td>
+                  <td className="py-3 px-2 text-sm text-[#EAF0FB]">Rs. {customer.fee}</td>
+                  <td className="py-3 px-2 text-sm text-[#8996AD]">{customer.iptv_enabled ? `Rs. ${customer.iptv_monthly_charges}` : 'N/A'}</td>
+                  <td className="py-3 px-2 text-sm text-[#8996AD]">{customer.live_ip_enabled ? customer.live_ip_address : 'N/A'}</td>
+                  <td className="py-3 px-2 text-sm text-[#F5514B]">Rs. {customer.previous_balance || 0}</td>
+                  <td className="py-3 px-2 text-sm text-[#8996AD]">{customer.install_date ? new Date(customer.install_date).toLocaleDateString() : 'N/A'}</td>
+                  <td className="py-3 px-2 text-sm text-[#8996AD]">{customer.billing_date ? new Date(customer.billing_date).toLocaleDateString() : 'N/A'}</td>
+                  <td className="py-3 px-2 text-sm text-[#8996AD] max-w-[200px] truncate">{customer.address || 'N/A'}</td>
                   <td className="py-3 px-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button 
@@ -133,12 +166,17 @@ export default function CustomersSuspended() {
                       >
                         <Check className="w-4 h-4" />
                       </button>
-                      <button className="p-2 text-[#8996AD] hover:text-[#EAF0FB] hover:bg-[#232D45] rounded-lg transition-colors">
+                      <button 
+                        onClick={() => navigate(`/customers/profile/${customer.id}`)}
+                        className="p-2 text-[#8996AD] hover:text-[#EAF0FB] hover:bg-[#232D45] rounded-lg transition-colors"
+                        title="View Profile"
+                      >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button 
                         onClick={() => handleDelete(customer.id)}
                         className="p-2 text-[#8996AD] hover:text-[#F5514B] hover:bg-[#232D45] rounded-lg transition-colors"
+                        title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -148,7 +186,7 @@ export default function CustomersSuspended() {
               ))}
               {filteredCustomers.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-[#5C6B85]">
+                  <td colSpan={14} className="py-8 text-center text-[#5C6B85]">
                     No suspended customers found
                   </td>
                 </tr>

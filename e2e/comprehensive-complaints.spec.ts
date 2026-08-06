@@ -10,12 +10,12 @@ test.describe('Comprehensive Complaints Module Testing', () => {
   });
 
   test('should navigate to complaints page', async ({ page }) => {
-    await page.goto('/complaints');
-    await expect(page).toHaveURL('/complaints');
+    await page.goto('/complaints/all');
+    await expect(page).toHaveURL('/complaints/all');
   });
 
   test('should display complaints list', async ({ page }) => {
-    await page.goto('/complaints');
+    await page.goto('/complaints/all');
     await page.waitForTimeout(2000);
     const complaintsList = page.locator('table, .grid, .list');
     await expect(complaintsList.first()).toBeVisible({ timeout: 10000 });

@@ -105,10 +105,12 @@ export const getUserNotifications = async (
 // Mark notification as read
 export const markNotificationAsRead = async (notificationId: string): Promise<void> => {
   try {
-    await supabase
+    const { error } = await supabase
       .from('notifications')
-      .update({ is_read: true, read_at: Date.now() })
+      .update({ is_read: true })
       .eq('id', notificationId);
+    
+    if (error) throw error;
   } catch (error) {
     console.error('Error marking notification as read:', error);
     throw error;
@@ -120,7 +122,7 @@ export const markAllNotificationsAsRead = async (userId: string): Promise<void> 
   try {
     await supabase
       .from('notifications')
-      .update({ is_read: true, read_at: Date.now() })
+      .update({ is_read: true })
       .eq('user_id', userId)
       .eq('is_read', false);
   } catch (error) {

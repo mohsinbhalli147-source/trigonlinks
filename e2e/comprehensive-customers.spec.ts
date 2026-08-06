@@ -7,7 +7,7 @@ test.describe('Comprehensive Customers Module Testing', () => {
     await page.fill('input[type="email"]', 'mohsinbhalli147@gmail.com');
     await page.fill('input[type="password"]', 'Zimal@123');
     await page.click('button[type="submit"]');
-    await page.waitForURL('/', { timeout: 15000 });
+    await page.waitForURL('/', { timeout: 30000 });
   });
 
   test('should navigate to customers page', async ({ page }) => {

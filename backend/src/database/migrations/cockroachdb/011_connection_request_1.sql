@@ -1,0 +1,1 @@
+ALTER TABLE connection_requests ADD COLUMN IF NOT EXISTS customer_uid VARCHAR(255);

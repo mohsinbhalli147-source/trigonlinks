@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'config/app_config.dart';
@@ -13,7 +11,6 @@ import 'providers/customer_provider.dart';
 import 'providers/complaint_provider.dart';
 import 'providers/notification_provider.dart';
 import 'services/api_service.dart';
-import 'services/notification_service.dart';
 import 'services/storage_service.dart';
 import 'screens/splash_screen.dart';
 import 'utils/constants.dart';
@@ -21,18 +18,12 @@ import 'utils/constants.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Firebase
-  await Firebase.initializeApp();
-  
   // Initialize Hive for local storage
   await Hive.initFlutter();
   await Hive.openBox('authBox');
   await Hive.openBox('customerBox');
   await Hive.openBox('complaintBox');
   await Hive.openBox('settingsBox');
-  
-  // Initialize local notifications
-  await NotificationService().initialize();
   
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
@@ -64,7 +55,6 @@ class TrigonLinksApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => CustomerProvider()),
         ChangeNotifierProvider(create: (_) => ComplaintProvider()),
-        ChangeNotifierProvider(create: (_) => NotificationProvider()),
         Provider(create: (_) => ApiService()),
         Provider(create: (_) => StorageService()),
       ],

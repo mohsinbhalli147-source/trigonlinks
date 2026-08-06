@@ -1,6 +1,8 @@
-import express from 'express';
+﻿import express from 'express';
+import { logger } from '../utils/logger';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { getSupabaseClient } from '../database/client';
+import { getBackupScheduler } from '../services/backup-scheduler';
 
 const router = express.Router();
 const supabase = getSupabaseClient();
@@ -40,7 +42,7 @@ router.get('/export', authorize('admin'), async (req: AuthRequest, res) => {
     res.setHeader('Content-Disposition', `attachment; filename=backup-${Date.now()}.json`);
     res.json(backupData);
   } catch (error) {
-    console.error('Backup export error:', error);
+    logger.error('Backup export error:', error);
     res.status(500).json({ error: 'Failed to generate backup' });
   }
 });
@@ -63,8 +65,67 @@ router.post('/restore', authorize('admin'), async (req: AuthRequest, res) => {
 
     res.json({ message: 'Backup restore received successfully' });
   } catch (error) {
-    console.error('Backup restore error:', error);
+    logger.error('Backup restore error:', error);
     res.status(500).json({ error: 'Failed to restore backup' });
+  }
+});
+
+// Trigger manual backup (Admin only)
+router.post('/trigger', authorize('admin'), async (req: AuthRequest, res) => {
+  try {
+    const backupScheduler = getBackupScheduler();
+    const success = await backupScheduler.runBackup();
+    
+    if (success) {
+      res.json({ message: 'Manual backup completed successfully' });
+    } else {
+      res.status(500).json({ error: 'Manual backup failed' });
+    }
+  } catch (error) {
+    logger.error('Manual backup error:', error);
+    res.status(500).json({ error: 'Failed to trigger manual backup' });
+  }
+});
+
+// Get backup status (Admin only)
+router.get('/status', authorize('admin'), async (req: AuthRequest, res) => {
+  try {
+    const backupScheduler = getBackupScheduler();
+    const status = await backupScheduler.getBackupStatus();
+    res.json(status);
+  } catch (error) {
+    logger.error('Backup status error:', error);
+    res.status(500).json({ error: 'Failed to get backup status' });
+  }
+});
+
+// Restore from backup file (Admin only)
+router.post('/restore-file', authorize('admin'), async (req: AuthRequest, res) => {
+  try {
+    const { filePath } = req.body;
+    if (!filePath) {
+      return res.status(400).json({ error: 'File path is required' });
+    }
+
+    const backupScheduler = getBackupScheduler();
+    const success = await backupScheduler.restoreBackup(filePath);
+    
+    if (success) {
+      // Record audit log
+      await supabase.from('logs').insert({
+        user_id: req.user?.id,
+        action: 'SYSTEM_RESTORE_COMPLETED',
+        details: { filePath, timestamp: new Date().toISOString() },
+        timestamp: Date.now()
+      });
+      
+      res.json({ message: 'Backup restore completed successfully' });
+    } else {
+      res.status(500).json({ error: 'Backup restore failed' });
+    }
+  } catch (error) {
+    logger.error('Backup restore from file error:', error);
+    res.status(500).json({ error: 'Failed to restore backup from file' });
   }
 });
 

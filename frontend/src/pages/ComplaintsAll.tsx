@@ -8,6 +8,8 @@ interface Complaint {
   id: string;
   customerId: string;
   customerName: string;
+  username?: string;
+  cnic?: string;
   category: string;
   description: string;
   priority: string;
@@ -28,7 +30,7 @@ export default function ComplaintsAll() {
   }, []);
 
   const fetchComplaints = async () => {
-    const result = await complaintsApi.getAll({ limit: 200 });
+    const result = await complaintsApi.getAll({ limit: 100 });
     if (result.success) {
       setComplaints(result.data?.data || []);
     }
@@ -140,6 +142,8 @@ export default function ComplaintsAll() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-[#232D45]">
+                <th className="text-left text-[#14E8B4] pb-3 font-bold">Username</th>
+                <th className="text-left text-[#14E8B4] pb-3 font-bold">CNIC</th>
                 <th className="text-left text-[#8996AD] pb-3 font-medium">Customer</th>
                 <th className="text-left text-[#8996AD] pb-3 font-medium">Category</th>
                 <th className="text-left text-[#8996AD] pb-3 font-medium">Priority</th>
@@ -151,6 +155,8 @@ export default function ComplaintsAll() {
             <tbody>
               {filteredComplaints.map((complaint) => (
                 <tr key={complaint.id} className="border-b border-[#232D45] hover:bg-[#1B2540]">
+                  <td className="py-4 text-sm font-bold text-[#14E8B4]">{complaint.username || 'N/A'}</td>
+                  <td className="py-4 text-sm font-bold text-[#14E8B4]">{complaint.cnic || 'N/A'}</td>
                   <td className="py-4">
                     <div className="text-[#EAF0FB] font-medium">{complaint.customerName}</div>
                     <div className="text-xs text-[#8996AD]">ID: {complaint.customerId}</div>

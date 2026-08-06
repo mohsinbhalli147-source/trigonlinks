@@ -1,4 +1,5 @@
-import express from 'express';
+﻿import express from 'express';
+import { logger } from '../utils/logger';
 import { body, validationResult } from 'express-validator';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { getSupabaseClient } from '../database/client';
@@ -91,7 +92,7 @@ router.get('/', authorize('admin', 'staff'), async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Get inventory error:', error);
+    logger.error('Get inventory error:', error);
     res.status(500).json({ error: 'Failed to fetch inventory' });
   }
 });
@@ -186,7 +187,7 @@ router.post('/adjust', authorize('admin', 'staff'), [
 
     res.json(txData![0]);
   } catch (error) {
-    console.error('Inventory adjustment error:', error);
+    logger.error('Inventory adjustment error:', error);
     res.status(500).json({ error: 'Failed to perform stock adjustment' });
   }
 });
@@ -269,7 +270,7 @@ router.post('/transactions', authorize('admin', 'staff'), [
 
     res.json(transactionResult![0]);
   } catch (error) {
-    console.error('Create inventory transaction error:', error);
+    logger.error('Create inventory transaction error:', error);
     res.status(500).json({ error: 'Failed to create inventory transaction' });
   }
 });
@@ -300,7 +301,7 @@ router.get('/transactions', authorize('admin', 'staff'), async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Get inventory transactions error:', error);
+    logger.error('Get inventory transactions error:', error);
     res.status(500).json({ error: 'Failed to fetch inventory transactions' });
   }
 });
@@ -323,7 +324,7 @@ router.get('/alerts', authorize('admin', 'staff'), async (req, res) => {
 
     res.json({ data: lowStockItems });
   } catch (error) {
-    console.error('Get inventory alerts error:', error);
+    logger.error('Get inventory alerts error:', error);
     res.status(500).json({ error: 'Failed to fetch inventory alerts' });
   }
 });

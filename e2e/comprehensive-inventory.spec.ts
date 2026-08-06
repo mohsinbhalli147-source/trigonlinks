@@ -15,7 +15,7 @@ test.describe('Comprehensive Inventory Module Testing', () => {
   });
 
   test('should display inventory list', async ({ page }) => {
-    await page.goto('/inventory');
+    await page.goto('/inventory/all');
     await page.waitForTimeout(2000);
     const inventoryList = page.locator('table, .grid, .list');
     await expect(inventoryList.first()).toBeVisible({ timeout: 10000 });

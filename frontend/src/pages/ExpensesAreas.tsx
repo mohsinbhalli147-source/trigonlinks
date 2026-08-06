@@ -27,7 +27,7 @@ export default function ExpensesAreas() {
       // Load areas and expenses in parallel
       const [areasResult, expensesResult] = await Promise.all([
         areasApi.getAll({ limit: 100 }),
-        expensesApi.getAll({ limit: 1000 }),
+        expensesApi.getAll({ limit: 100 }),
       ]);
 
       if (!areasResult.success) {

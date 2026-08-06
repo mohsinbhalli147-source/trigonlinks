@@ -13,6 +13,11 @@ class BillsScreen extends StatefulWidget {
 }
 
 class _BillsScreenState extends State<BillsScreen> {
+  String _safeSubstring(String text, int length) {
+    if (text.isEmpty) return text;
+    return text.substring(0, text.length < length ? text.length : length);
+  }
+  
   @override
   void initState() {
     super.initState();
@@ -131,7 +136,7 @@ class _BillsScreenState extends State<BillsScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Invoice #${id.substring(0, 8).toUpperCase()}',
+                    'Invoice #${_safeSubstring(id, 8).toUpperCase()}',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),

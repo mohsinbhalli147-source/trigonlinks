@@ -10,8 +10,8 @@ class AppConfig {
   static const String appVersion = '1.0.0';
   static const String companyWebsite = 'https://trigonlink.pakdata.net';
   static const String supportEmail = 'support@trigonlinks.com';
-  static const String supportPhone = '+92-XXX-XXXXXXX';
-  static const String whatsappNumber = '+92-XXX-XXXXXXX';
+  static const String supportPhone = '+92-307-7669999';
+  static const String whatsappNumber = '+92-307-7669999';
   
   // Feature Flags
   static const bool enablePushNotifications = true;

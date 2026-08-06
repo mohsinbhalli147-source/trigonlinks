@@ -9,13 +9,13 @@ test.describe('Comprehensive Announcements Module Testing', () => {
     await page.waitForURL('/', { timeout: 15000 });
   });
 
-  test('should navigate to announcements page', async ({ page }) => {
-    await page.goto('/announcements');
-    await expect(page).toHaveURL('/announcements');
+  test('should navigate to announcements history page', async ({ page }) => {
+    await page.goto('/announcements/history');
+    await expect(page).toHaveURL('/announcements/history');
   });
 
   test('should display announcements list', async ({ page }) => {
-    await page.goto('/announcements');
+    await page.goto('/announcements/history');
     await page.waitForTimeout(2000);
     const announcementsList = page.locator('table, .grid, .list');
     await expect(announcementsList.first()).toBeVisible({ timeout: 10000 });

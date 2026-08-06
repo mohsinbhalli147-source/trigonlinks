@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 let isRefreshing = false;
 let failedQueue: Array<{
@@ -347,6 +347,86 @@ export const googleApi = {
   syncAllCustomers: () => apiService.post('/api/google/sync/all'),
   getSyncStatus: (customerId: string) => apiService.get(`/api/google/sync/status/${customerId}`),
   testConnection: () => apiService.post('/api/google/test-connection'),
+};
+
+export const customersAdvancedApi = {
+  // Tags
+  getTags: (customerId: string) => apiService.get(`/api/customers/advanced/tags/${customerId}`),
+  getAllTags: () => apiService.get('/api/customers/advanced/tags/all'),
+  addTag: (data: any) => apiService.post('/api/customers/advanced/tags', data),
+  removeTag: (customerId: string, tagName: string) => apiService.delete(`/api/customers/advanced/tags/${customerId}/${tagName}`),
+  
+  // Labels
+  getLabels: (customerId: string) => apiService.get(`/api/customers/advanced/labels/${customerId}`),
+  addLabel: (data: any) => apiService.post('/api/customers/advanced/labels', data),
+  removeLabel: (customerId: string, labelName: string, labelType: string) => 
+    apiService.delete(`/api/customers/advanced/labels/${customerId}/${labelName}/${labelType}`),
+  
+  // Rating & Priority
+  updateRatingPriority: (customerId: string, data: any) => 
+    apiService.put(`/api/customers/advanced/rating-priority/${customerId}`, data),
+  
+  // Documents
+  getDocuments: (customerId: string) => apiService.get(`/api/customers/advanced/documents/${customerId}`),
+  uploadDocument: (data: any) => apiService.post('/api/customers/advanced/documents', data),
+  deleteDocument: (documentId: string) => apiService.delete(`/api/customers/advanced/documents/${documentId}`),
+  
+  // Notes
+  getNotes: (customerId: string) => apiService.get(`/api/customers/advanced/notes/${customerId}`),
+  addNote: (data: any) => apiService.post('/api/customers/advanced/notes', data),
+  updateNote: (noteId: string, data: any) => apiService.put(`/api/customers/advanced/notes/${noteId}`, data),
+  togglePinNote: (noteId: string, isPinned: boolean) => 
+    apiService.put(`/api/customers/advanced/notes/${noteId}/pin`, { is_pinned: isPinned }),
+  deleteNote: (noteId: string) => apiService.delete(`/api/customers/advanced/notes/${noteId}`),
+  
+  // Staff Notes
+  getStaffNotes: (customerId: string) => apiService.get(`/api/customers/advanced/staff-notes/${customerId}`),
+  addStaffNote: (data: any) => apiService.post('/api/customers/advanced/staff-notes', data),
+  updateStaffNote: (noteId: string, data: any) => apiService.put(`/api/customers/advanced/staff-notes/${noteId}`, data),
+  deleteStaffNote: (noteId: string) => apiService.delete(`/api/customers/advanced/staff-notes/${noteId}`),
+  
+  // Family Accounts
+  getFamilyAccount: (customerId: string) => apiService.get(`/api/customers/advanced/family-account/${customerId}`),
+  createFamilyAccount: (data: any) => apiService.post('/api/customers/advanced/family-accounts', data),
+  addFamilyMember: (accountId: string, data: any) => 
+    apiService.post(`/api/customers/advanced/family-accounts/${accountId}/members`, data),
+  
+  // Activity Timeline
+  getActivity: (customerId: string, limit?: number) => 
+    apiService.get(`/api/customers/advanced/activity/${customerId}`, limit ? { limit } : undefined),
+  
+  // Saved Filters
+  getSavedFilters: () => apiService.get('/api/customers/advanced/saved-filters'),
+  createSavedFilter: (data: any) => apiService.post('/api/customers/advanced/saved-filters', data),
+  updateSavedFilter: (filterId: string, data: any) => 
+    apiService.put(`/api/customers/advanced/saved-filters/${filterId}`, data),
+  deleteSavedFilter: (filterId: string) => apiService.delete(`/api/customers/advanced/saved-filters/${filterId}`),
+  
+  // Bulk Operations
+  getBulkOperations: () => apiService.get('/api/customers/advanced/bulk-operations'),
+  createBulkOperation: (data: any) => apiService.post('/api/customers/advanced/bulk-operations', data),
+  bulkSuspend: (data: any) => apiService.post('/api/customers/advanced/bulk-suspend', data),
+  bulkActivate: (data: any) => apiService.post('/api/customers/advanced/bulk-activate', data),
+  bulkPackageChange: (data: any) => apiService.post('/api/customers/advanced/bulk-package-change', data),
+  bulkBilling: (data: any) => apiService.post('/api/customers/advanced/bulk-billing', data),
+  bulkSMS: (data: any) => apiService.post('/api/customers/advanced/bulk-sms', data),
+  bulkWhatsApp: (data: any) => apiService.post('/api/customers/advanced/bulk-whatsapp', data),
+  getBulkOperationResults: (operationId: string) => 
+    apiService.get(`/api/customers/advanced/bulk-operations/${operationId}/results`),
+  
+  // Export
+  exportCSV: (data: any) => api.post('/api/customers/advanced/export/csv', data, { responseType: 'blob' }),
+  exportExcel: (data: any) => api.post('/api/customers/advanced/export/excel', data),
+  exportPDF: (data: any) => api.post('/api/customers/advanced/export/pdf', data),
+  
+  // History
+  getPackageHistory: (customerId: string, limit?: number) => 
+    apiService.get(`/api/customers/advanced/package-history/${customerId}`, limit ? { limit } : undefined),
+  getConnectionHistory: (customerId: string, limit?: number) => 
+    apiService.get(`/api/customers/advanced/connection-history/${customerId}`, limit ? { limit } : undefined),
+  
+  // Advanced Search
+  search: (data: any) => apiService.post('/api/customers/advanced/search', data),
 };
 
 export default api;

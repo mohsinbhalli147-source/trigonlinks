@@ -1,4 +1,5 @@
-import express from 'express';
+﻿import express from 'express';
+import { logger } from '../utils/logger';
 import { body, validationResult } from 'express-validator';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { AreasRepository } from '../repositories/AreasRepository';
@@ -36,7 +37,7 @@ router.get('/', authorize('admin', 'staff'), async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    console.error('Get areas error:', error);
+    logger.error('Get areas error:', error);
     res.status(500).json({ error: 'Failed to fetch areas' });
   }
 });
@@ -228,7 +229,7 @@ router.get('/:id/revenue', authorize('admin', 'staff'), async (req, res) => {
 
     res.json({ areaId: area.id, year, revenueData, summary });
   } catch (error) {
-    console.error('Get area revenue error:', error);
+    logger.error('Get area revenue error:', error);
     res.status(500).json({ error: 'Failed to fetch area revenue' });
   }
 });
@@ -282,7 +283,7 @@ router.get('/:id/report', authorize('admin', 'staff'), async (req, res) => {
       customerGrowthLabels: growth.map(g => g.month),
     });
   } catch (error) {
-    console.error('Get area report error:', error);
+    logger.error('Get area report error:', error);
     res.status(500).json({ error: 'Failed to fetch area report' });
   }
 });

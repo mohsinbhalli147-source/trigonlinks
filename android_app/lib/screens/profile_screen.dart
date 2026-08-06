@@ -75,7 +75,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         radius: 50,
                         backgroundColor: AppColors.primary,
                         child: Text(
-                          name.substring(0, 1).toUpperCase(),
+                          name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?',
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -237,7 +237,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _buildContactTile(
                         icon: Icons.phone,
                         title: 'Call Support',
-                        subtitle: AppConfig.supportPhone,
+                        subtitle: AppConstants.supportPhone,
                         onTap: () {
                           // Make phone call
                         },
@@ -246,7 +246,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _buildContactTile(
                         icon: Icons.chat,
                         title: 'WhatsApp Support',
-                        subtitle: AppConfig.whatsappNumber,
+                        subtitle: AppConstants.whatsappNumber,
                         onTap: () {
                           // Open WhatsApp
                         },
@@ -255,7 +255,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _buildContactTile(
                         icon: Icons.email,
                         title: 'Email Support',
-                        subtitle: AppConfig.supportEmail,
+                        subtitle: AppConstants.supportEmail,
                         onTap: () {
                           // Open email
                         },
@@ -312,7 +312,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // App Version
               Center(
                 child: Text(
-                  'Version ${AppConfig.appVersion}',
+                  'Version ${AppConstants.appVersion}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.textTertiary,
                   ),

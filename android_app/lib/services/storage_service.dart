@@ -1,10 +1,18 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../utils/constants.dart';
 
 class StorageService {
-  // SharedPreferences for simple key-value storage
+  // SharedPreferences for simple key-value storage (non-sensitive data)
   Future<SharedPreferences> get _prefs async => await SharedPreferences.getInstance();
+  
+  // Flutter Secure Storage for sensitive data (tokens, auth)
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+    ),
+  );
   
   // Hive boxes for complex data storage
   Box get _authBox => Hive.box('authBox');
@@ -12,31 +20,26 @@ class StorageService {
   Box get _complaintBox => Hive.box('complaintBox');
   Box get _settingsBox => Hive.box('settingsBox');
   
-  // Auth Token Management
+  // Auth Token Management (Secure Storage)
   Future<void> saveAccessToken(String token) async {
-    final prefs = await _prefs;
-    await prefs.setString(AppConstants.accessTokenKey, token);
+    await _secureStorage.write(key: AppConstants.accessTokenKey, value: token);
   }
   
   Future<String?> getAccessToken() async {
-    final prefs = await _prefs;
-    return prefs.getString(AppConstants.accessTokenKey);
+    return await _secureStorage.read(key: AppConstants.accessTokenKey);
   }
   
   Future<void> saveRefreshToken(String token) async {
-    final prefs = await _prefs;
-    await prefs.setString(AppConstants.refreshTokenKey, token);
+    await _secureStorage.write(key: AppConstants.refreshTokenKey, value: token);
   }
   
   Future<String?> getRefreshToken() async {
-    final prefs = await _prefs;
-    return prefs.getString(AppConstants.refreshTokenKey);
+    return await _secureStorage.read(key: AppConstants.refreshTokenKey);
   }
   
   Future<void> clearAuthData() async {
-    final prefs = await _prefs;
-    await prefs.remove(AppConstants.accessTokenKey);
-    await prefs.remove(AppConstants.refreshTokenKey);
+    await _secureStorage.delete(key: AppConstants.accessTokenKey);
+    await _secureStorage.delete(key: AppConstants.refreshTokenKey);
     await _authBox.clear();
   }
   
@@ -76,7 +79,7 @@ class StorageService {
     final timestamp = _complaintBox.get('complaints_timestamp');
     if (timestamp != null) {
       final age = DateTime.now().millisecondsSinceEpoch - timestamp;
-      if (age > AppConfig.cacheMaxAge) {
+      if (age > AppConstants.cacheMaxAge) {
         // Cache expired
         await _complaintBox.delete('complaints_list');
         await _complaintBox.delete('complaints_timestamp');

@@ -81,19 +81,20 @@ android {
         }
     }
 
-    flavorDimensions "default"
-    productFlavors {
-        development {
-            dimension "default"
-            applicationIdSuffix ".dev"
-            versionNameSuffix "-dev"
-            resValue "string", "app_name", "TrigonLinks Dev"
-        }
-        production {
-            dimension "default"
-            resValue "string", "app_name", "TrigonLinks"
-        }
-    }
+    // Temporarily disabled for simple debug build
+    // flavorDimensions "default"
+    // productFlavors {
+    //     development {
+    //         dimension "default"
+    //         applicationIdSuffix ".dev"
+    //         versionNameSuffix "-dev"
+    //         resValue "string", "app_name", "TrigonLinks Dev"
+    //     }
+    //     production {
+    //         dimension "default"
+    //         resValue "string", "app_name", "TrigonLinks"
+    //     }
+    // }
 }
 
 flutter {
@@ -108,4 +109,5 @@ dependencies {
     implementation 'com.google.firebase:firebase-messaging'
 }
 
-apply plugin: 'com.google.gms.google-services'
+// Temporarily disabled for build - requires proper google-services.json configuration
+// apply plugin: 'com.google.gms.google-services'

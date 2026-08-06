@@ -62,22 +62,9 @@ class AuthProvider with ChangeNotifier {
       );
       
       if (response.statusCode == 200) {
-        final data = response.data;
-        
-        // Save tokens
-        await _storageService.saveAccessToken(data['accessToken']);
-        await _storageService.saveRefreshToken(data['refreshToken']);
-        
-        // Save user data
-        final user = data['user'];
-        await _storageService.saveUserData(user);
-        
-        _isAuthenticated = true;
-        _userData = user;
-        
         return true;
       } else {
-        _errorMessage = data['error'] ?? AppConstants.serverErrorMessage;
+        _errorMessage = response.data['error'] ?? AppConstants.serverErrorMessage;
         return false;
       }
     } catch (e) {

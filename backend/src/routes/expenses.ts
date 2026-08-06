@@ -1,4 +1,5 @@
-import express from 'express';
+﻿import express from 'express';
+import { logger } from '../utils/logger';
 import { body, validationResult } from 'express-validator';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { ExpensesRepository } from '../repositories/ExpensesRepository';
@@ -41,7 +42,7 @@ router.get('/', authorize('admin', 'staff'), async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    console.error('Get expenses error:', error);
+    logger.error('Get expenses error:', error);
     res.status(500).json({ error: 'Failed to fetch expenses' });
   }
 });
@@ -52,13 +53,12 @@ router.get('/categories', authorize('admin', 'staff'), async (req, res) => {
     const { data, error } = await supabase
       .from('expense_categories')
       .select('*')
-      .order('name');
-
+      .order('created_at', { ascending: false });
+    
     if (error) throw error;
-
     res.json(data || []);
   } catch (error) {
-    console.error('Get expense categories error:', error);
+    logger.error('Get expense categories error:', error);
     res.status(500).json({ error: 'Failed to fetch expense categories' });
   }
 });
@@ -155,22 +155,6 @@ router.delete('/:id', authorize('admin'), async (req, res) => {
   }
 });
 
-// Expense categories endpoints
-router.get('/categories', authorize('admin', 'staff'), async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('expense_categories')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    res.json(data || []);
-  } catch (error) {
-    console.error('Get expense categories error:', error);
-    res.status(500).json({ error: 'Failed to fetch expense categories' });
-  }
-});
-
 router.post('/categories', authorize('admin'), [
   body('name').notEmpty(),
   body('budget').isNumeric()
@@ -200,7 +184,7 @@ router.post('/categories', authorize('admin'), [
     if (insertError) throw insertError;
     res.json(result![0]);
   } catch (error) {
-    console.error('Create expense category error:', error);
+    logger.error('Create expense category error:', error);
     res.status(500).json({ error: 'Failed to create expense category' });
   }
 });
@@ -210,7 +194,7 @@ router.delete('/categories/:id', authorize('admin'), async (req, res) => {
     await supabase.from('expense_categories').delete().eq('id', req.params.id);
     res.json({ message: 'Expense category deleted successfully' });
   } catch (error) {
-    console.error('Delete expense category error:', error);
+    logger.error('Delete expense category error:', error);
     res.status(500).json({ error: 'Failed to delete expense category' });
   }
 });
@@ -253,7 +237,7 @@ router.put('/categories/:id', authorize('admin'), async (req: AuthRequest, res) 
     if (updateError) throw updateError;
     res.json(result![0]);
   } catch (error) {
-    console.error('Update expense category error:', error);
+    logger.error('Update expense category error:', error);
     res.status(500).json({ error: 'Failed to update expense category' });
   }
 });

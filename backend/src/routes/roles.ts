@@ -1,4 +1,5 @@
-import express from 'express';
+﻿import express from 'express';
+import { logger } from '../utils/logger';
 import { authenticate, authorize } from '../middleware/auth';
 import { getSupabaseClient } from '../database/client';
 
@@ -45,7 +46,7 @@ router.get('/', authorize('admin'), async (req, res) => {
 
     res.json(roles);
   } catch (error) {
-    console.error('Error fetching roles:', error);
+    logger.error('Error fetching roles:', error);
     res.status(500).json({ error: 'Failed to fetch roles' });
   }
 });

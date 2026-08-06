@@ -1,0 +1,2 @@
+CREATE INDEX IF NOT EXISTS idx_connection_requests_customer_uid ON connection_requests(customer_uid);
+CREATE INDEX IF NOT EXISTS idx_connection_requests_preferred_date ON connection_requests(preferred_date);

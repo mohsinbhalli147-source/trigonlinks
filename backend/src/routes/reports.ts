@@ -1,4 +1,5 @@
-import express from 'express';
+﻿import express from 'express';
+import { logger } from '../utils/logger';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { getSupabaseClient } from '../database/client';
 import {
@@ -46,7 +47,7 @@ router.get('/summary', authorize('admin', 'staff'), async (req, res) => {
       profit: totalRevenue - totalExpenses,
     });
   } catch (error) {
-    console.error('Summary report error:', error);
+    logger.error('Summary report error:', error);
     res.status(500).json({ error: 'Failed to generate summary report' });
   }
 });
@@ -146,7 +147,7 @@ router.get('/customers', authorize('admin', 'staff'), async (req, res) => {
         },
       });
   } catch (error) {
-    console.error('Customer report error:', error);
+    logger.error('Customer report error:', error);
     res.status(500).json({ error: 'Failed to generate customer report' });
   }
 });
@@ -215,7 +216,7 @@ router.get('/billing', authorize('admin', 'staff'), async (req, res) => {
         },
       });
   } catch (error) {
-    console.error('Billing report error:', error);
+    logger.error('Billing report error:', error);
     res.status(500).json({ error: 'Failed to generate billing report' });
   }
 });
@@ -261,7 +262,7 @@ router.get('/income', authorize('admin', 'staff'), async (req, res) => {
       meta: { stage },
     });
   } catch (error) {
-    console.error('Income report error:', error);
+    logger.error('Income report error:', error);
     res.status(500).json({ error: 'Failed to generate income report' });
   }
 });
@@ -312,7 +313,7 @@ router.get('/expenses', authorize('admin', 'staff'), async (req, res) => {
         },
       });
   } catch (error) {
-    console.error('Expense report error:', error);
+    logger.error('Expense report error:', error);
     res.status(500).json({ error: 'Failed to generate expense report' });
   }
 });
@@ -389,7 +390,7 @@ router.get('/connections', authorize('admin', 'staff'), async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Connections report error:', error);
+    logger.error('Connections report error:', error);
     res.status(500).json({ error: 'Failed to generate connections report' });
   }
 });
@@ -415,7 +416,7 @@ router.get('/packages', authorize('admin', 'staff'), async (req, res) => {
       return {
         id: pkg.id,
         name: pkg.name || 'Unknown',
-        speed: pkg.speed || pkg.bandwidth || '—',
+        speed: pkg.speed || pkg.bandwidth || 'â€”',
         price: toNumber(pkg.price || pkg.monthly_fee),
         customers: pkgCustomers.length,
         activeCustomers,
@@ -445,7 +446,7 @@ router.get('/packages', authorize('admin', 'staff'), async (req, res) => {
       revenueDistribution,
     });
   } catch (error) {
-    console.error('Packages report error:', error);
+    logger.error('Packages report error:', error);
     res.status(500).json({ error: 'Failed to generate packages report' });
   }
 });
@@ -526,7 +527,7 @@ router.get('/business', authorize('admin'), async (req, res) => {
         },
       });
   } catch (error) {
-    console.error('Business report error:', error);
+    logger.error('Business report error:', error);
     res.status(500).json({ error: 'Failed to generate business report' });
   }
 });
@@ -565,7 +566,7 @@ router.get('/export/:type/pdf', authorize('admin', 'staff'), async (req: AuthReq
     res.setHeader('Content-Disposition', `attachment; filename=${type}-report.pdf`);
     res.send(pdfBuffer);
   } catch (error) {
-    console.error('Export PDF error:', error);
+    logger.error('Export PDF error:', error);
     res.status(500).json({ error: 'Failed to generate PDF report' });
   }
 });
@@ -609,7 +610,7 @@ router.get('/export/:type/excel', authorize('admin', 'staff'), async (req: AuthR
     res.setHeader('Content-Disposition', `attachment; filename=${type}-report.xlsx`);
     res.send(excelBuffer);
   } catch (error) {
-    console.error('Export Excel error:', error);
+    logger.error('Export Excel error:', error);
     res.status(500).json({ error: 'Failed to generate Excel report' });
   }
 });
@@ -621,7 +622,7 @@ router.get('/revenue', authorize('admin', 'staff'), async (req: AuthRequest, res
     const revenueData = await getRevenueReportData(filters);
     res.json(revenueData);
   } catch (error) {
-    console.error('Revenue report error:', error);
+    logger.error('Revenue report error:', error);
     res.status(500).json({ error: 'Failed to generate revenue report' });
   }
 });
@@ -667,7 +668,7 @@ router.get('/export/:type/csv', authorize('admin', 'staff'), async (req: AuthReq
     res.setHeader('Content-Disposition', `attachment; filename=${type}-report.csv`);
     res.send(csv);
   } catch (error) {
-    console.error('Export CSV error:', error);
+    logger.error('Export CSV error:', error);
     res.status(500).json({ error: 'Failed to generate CSV report' });
   }
 });
@@ -706,7 +707,7 @@ router.get('/profitability', authorize('admin', 'staff'), async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Profitability report error:', error);
+    logger.error('Profitability report error:', error);
     res.status(500).json({ error: 'Failed to generate profitability report' });
   }
 });

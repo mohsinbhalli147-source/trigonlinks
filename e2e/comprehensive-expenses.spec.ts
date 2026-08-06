@@ -10,12 +10,12 @@ test.describe('Comprehensive Expenses Module Testing', () => {
   });
 
   test('should navigate to expenses page', async ({ page }) => {
-    await page.goto('/expenses');
-    await expect(page).toHaveURL('/expenses');
+    await page.goto('/expenses/all');
+    await expect(page).toHaveURL('/expenses/all');
   });
 
   test('should display expenses list', async ({ page }) => {
-    await page.goto('/expenses');
+    await page.goto('/expenses/all');
     await page.waitForTimeout(2000);
     const expensesList = page.locator('table, .grid, .list');
     await expect(expensesList.first()).toBeVisible({ timeout: 10000 });

@@ -28,7 +28,7 @@ export default function BillingPaid() {
   const loadPayments = async () => {
     setLoading(true);
     setError('');
-    const result = await invoicesApi.getAll({ status: 'paid', limit: 500, sortBy: 'createdAt', sortOrder: 'desc' });
+    const result = await invoicesApi.getAll({ status: 'paid', limit: 100, sortBy: 'createdAt', sortOrder: 'desc' });
     if (result.success) {
       const paidInvoices = (result.data?.data || []).map((inv: any) => ({
         id: inv.id,

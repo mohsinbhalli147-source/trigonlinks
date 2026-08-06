@@ -20,7 +20,7 @@ export default function InventoryReports() {
   const loadReports = async () => {
     setLoading(true);
     setError('');
-    const result = await inventoryApi.getAll({ limit: 500 });
+    const result = await inventoryApi.getAll({ limit: 100 });
     if (result.success) {
       setItems(result.data?.data || []);
     } else {

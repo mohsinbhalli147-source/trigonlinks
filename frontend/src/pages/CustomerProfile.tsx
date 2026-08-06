@@ -222,6 +222,14 @@ export default function CustomerProfile() {
             Personal Information
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="bg-[#1B2540] p-4 rounded-lg border-2 border-[#14E8B4]">
+              <p className="text-xs text-[#5C6B85] mb-1">Username (Required)</p>
+              <p className="text-sm font-bold text-[#14E8B4]">{customer.username || 'N/A'}</p>
+            </div>
+            <div className="bg-[#1B2540] p-4 rounded-lg border-2 border-[#14E8B4]">
+              <p className="text-xs text-[#5C6B85] mb-1">CNIC (Required)</p>
+              <p className="text-sm font-bold text-[#14E8B4]">{customer.cnic || 'N/A'}</p>
+            </div>
             <div className="bg-[#1B2540] p-4 rounded-lg">
               <p className="text-xs text-[#5C6B85] mb-1">Customer ID</p>
               <p className="text-sm font-medium text-[#EAF0FB] font-mono">{customer.id}</p>
@@ -239,19 +247,11 @@ export default function CustomerProfile() {
               <p className="text-sm font-medium text-[#EAF0FB]">{customer.fatherName || 'N/A'}</p>
             </div>
             <div className="bg-[#1B2540] p-4 rounded-lg">
-              <p className="text-xs text-[#5C6B85] mb-1">Username</p>
-              <p className="text-sm font-medium text-[#EAF0FB]">{customer.username || 'N/A'}</p>
-            </div>
-            <div className="bg-[#1B2540] p-4 rounded-lg">
               <p className="text-xs text-[#5C6B85] mb-1">Phone</p>
               <p className="text-sm font-medium text-[#EAF0FB] flex items-center gap-2">
                 <Phone className="w-4 h-4" />
                 {customer.mobile || customer.phone || 'N/A'}
               </p>
-            </div>
-            <div className="bg-[#1B2540] p-4 rounded-lg">
-              <p className="text-xs text-[#5C6B85] mb-1">CNIC</p>
-              <p className="text-sm font-medium text-[#EAF0FB]">{customer.cnic || 'N/A'}</p>
             </div>
             <div className="bg-[#1B2540] p-4 rounded-lg">
               <p className="text-xs text-[#5C6B85] mb-1">Email</p>
