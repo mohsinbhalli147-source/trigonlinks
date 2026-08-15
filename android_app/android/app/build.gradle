@@ -54,11 +54,17 @@ android {
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true
+        // Ensure a concrete application name is set so the manifest's
+        // ${applicationName} placeholder does not resolve to a Play Store
+        // split-support Application that references SplitCompat. Use the
+        // standard Flutter Application class which doesn't depend on
+        // Play Core SplitCompat classes.
+        manifestPlaceholders = [applicationName: "io.flutter.app.FlutterApplication"]
     }
 
     signingConfigs {
-        release {
-            if (keystorePropertiesFile.exists()) {
+        if (keystorePropertiesFile.exists()) {
+            release {
                 keyAlias keystoreProperties['keyAlias']
                 keyPassword keystoreProperties['keyPassword']
                 storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
@@ -69,7 +75,9 @@ android {
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -81,20 +89,19 @@ android {
         }
     }
 
-    // Temporarily disabled for simple debug build
-    // flavorDimensions "default"
-    // productFlavors {
-    //     development {
-    //         dimension "default"
-    //         applicationIdSuffix ".dev"
-    //         versionNameSuffix "-dev"
-    //         resValue "string", "app_name", "TrigonLinks Dev"
-    //     }
-    //     production {
-    //         dimension "default"
-    //         resValue "string", "app_name", "TrigonLinks"
-    //     }
-    // }
+    flavorDimensions "default"
+    productFlavors {
+        development {
+            dimension "default"
+            applicationIdSuffix ".dev"
+            versionNameSuffix "-dev"
+            resValue "string", "app_name", "TrigonLinks Dev"
+        }
+        production {
+            dimension "default"
+            resValue "string", "app_name", "TrigonLinks"
+        }
+    }
 }
 
 flutter {
@@ -104,10 +111,14 @@ flutter {
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'com.android.support:multidex:1.0.3'
-    implementation platform('com.google.firebase:firebase-bom:32.7.0')
-    implementation 'com.google.firebase:firebase-analytics'
-    implementation 'com.google.firebase:firebase-messaging'
+    // Play Core (SplitCompat) required to satisfy R8 references from Flutter's
+    // Play Store split compatibility application class.
+    implementation 'com.google.android.play:core:1.10.3'
+    // Firebase dependencies disabled for build
+    // implementation platform('com.google.firebase:firebase-bom:32.7.0')
+    // implementation 'com.google.firebase:firebase-analytics'
+    // implementation 'com.google.firebase:firebase-messaging'
 }
 
-// Temporarily disabled for build - requires proper google-services.json configuration
+// Google services disabled for build
 // apply plugin: 'com.google.gms.google-services'

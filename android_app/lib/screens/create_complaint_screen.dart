@@ -259,33 +259,12 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                         color: AppColors.textTertiary,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    Container(
-                      height: 100,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border),
-                        color: AppColors.surfaceLight,
-                      ),
-                      child: const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.image, size: 48, color: AppColors.textTertiary),
-                            SizedBox(height: 8),
-                            Text(
-                              'Image upload disabled',
-                              style: TextStyle(color: AppColors.textTertiary),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+
                     Row(
                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
+                            key: const Key('gallery_button'),
                             onPressed: _pickImage,
                             icon: const Icon(Icons.photo_library),
                             label: const Text('Gallery'),
@@ -294,6 +273,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: OutlinedButton.icon(
+                            key: const Key('camera_button'),
                             onPressed: _takePhoto,
                             icon: const Icon(Icons.camera_alt),
                             label: const Text('Camera'),

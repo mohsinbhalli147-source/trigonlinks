@@ -22,6 +22,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     });
   }
 
+  DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    if (value is String) {
+      final numeric = int.tryParse(value);
+      if (numeric != null) return DateTime.fromMillisecondsSinceEpoch(numeric);
+      try {
+        return DateTime.parse(value);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final notificationProvider = context.watch<NotificationProvider>();
@@ -189,14 +204,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ),
                     if (createdAt != null) ...[
                       const SizedBox(height: 8),
-                      Text(
-                        DateFormat('MMM dd, yyyy • HH:mm').format(
-                          DateTime.fromMillisecondsSinceEpoch(createdAt),
-                        ),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textTertiary,
-                        ),
-                      ),
+                      Builder(builder: (context) {
+                        final dt = _parseDate(createdAt);
+                        if (dt == null) return const SizedBox.shrink();
+                        return Text(
+                          DateFormat('MMM dd, yyyy • HH:mm').format(dt),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.textTertiary,
+                          ),
+                        );
+                      }),
                     ],
                   ],
                 ),
@@ -231,11 +248,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 16),
-              if (notification['created_at'] != null)
+                if (notification['created_at'] != null)
                 Text(
-                  'Received: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(
-                    DateTime.fromMillisecondsSinceEpoch(notification['created_at']),
-                  )}',
+                  'Received: ${(() {
+                    final dt = _parseDate(notification['created_at']);
+                    return dt != null ? DateFormat('yyyy-MM-dd HH:mm:ss').format(dt) : '';
+                  })()}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.textTertiary,
                   ),

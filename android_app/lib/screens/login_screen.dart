@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../config/theme.dart';
+import '../config/app_config.dart';
 import '../utils/constants.dart';
 import 'home_screen.dart';
 
@@ -264,8 +266,23 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     TextButton.icon(
-                      onPressed: () {
-                        // Open support contact
+                      onPressed: () async {
+                        final Uri phoneUri = Uri(
+                          scheme: 'tel',
+                          path: AppConfig.supportPhone.replaceAll('-', ''),
+                        );
+                        if (await canLaunchUrl(phoneUri)) {
+                          await launchUrl(phoneUri);
+                        } else {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Could not launch phone dialer'),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        }
                       },
                       icon: const Icon(Icons.phone),
                       label: const Text('Contact Support'),

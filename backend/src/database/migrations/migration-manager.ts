@@ -26,39 +26,24 @@ export class MigrationManager {
   private supabase: any;
   private pgPool: Pool;
   private migrationsPath: string;
-  private dbType: string;
 
   constructor() {
-    this.dbType = process.env.DB_TYPE || 'supabase';
-    
-    // Only initialize Supabase if using Supabase
-    if (this.dbType === 'supabase') {
-      this.supabase = createClient(
-        process.env.SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
-    }
+    this.supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
     // Use PostgreSQL pool for direct SQL execution (with SSL)
     try {
-      let connectionString: string;
-      
-      if (this.dbType === 'cockroachdb') {
-        // Use CockroachDB connection string
-        connectionString = process.env.COCKROACHDB_CONNECTION_STRING!;
-      } else {
-        // Use Supabase connection string
-        connectionString = process.env.DATABASE_URL || 
-          `postgresql://${process.env.DATABASE_USER}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:${process.env.DATABASE_PORT}/${process.env.DATABASE_NAME}?sslmode=require`;
-      }
+      const connectionString = process.env.DATABASE_URL || 
+        `postgresql://${process.env.DATABASE_USER}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:${process.env.DATABASE_PORT}/${process.env.DATABASE_NAME}?sslmode=require`;
       
       this.pgPool = new Pool({
         connectionString: connectionString,
         ssl: {
-          rejectUnauthorized: false // Allow SSL without CA verification
+          rejectUnauthorized: false // For Supabase, we need to allow self-signed certs
         },
-        max: this.dbType === 'cockroachdb' ? 5 : 20, // Lower pool for CockroachDB Serverless
-        connectionTimeoutMillis: this.dbType === 'cockroachdb' ? 10000 : 10000,
+        connectionTimeoutMillis: 10000,
       });
     } catch (error) {
       logger.warn('Failed to create PostgreSQL pool, will use Supabase client only:', error);
@@ -78,11 +63,9 @@ export class MigrationManager {
     }
 
     try {
-      const uuidFunction = this.dbType === 'cockroachdb' ? 'gen_random_uuid()' : 'uuid_generate_v4()';
-      
       const createTableSQL = `
         CREATE TABLE IF NOT EXISTS schema_migrations (
-          id UUID PRIMARY KEY DEFAULT ${uuidFunction},
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
           version INTEGER UNIQUE NOT NULL,
           name VARCHAR(255) NOT NULL,
           checksum VARCHAR(64) NOT NULL,
@@ -255,12 +238,6 @@ export class MigrationManager {
    */
   async runMigrations(): Promise<{ success: boolean; results: MigrationResult[] }> {
     logger.info('Starting migration process...');
-
-    // Skip migrations if using CockroachDB (we ran them manually)
-    if (this.dbType === 'cockroachdb') {
-      logger.info('Skipping automatic migrations for CockroachDB (migrations already run manually)');
-      return { success: true, results: [] };
-    }
 
     // Initialize migrations table
     await this.initializeMigrationsTable();

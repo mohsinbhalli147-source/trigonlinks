@@ -70,3 +70,7 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/fonts/
+
+  # Enable web support for laptop testing
+  # Run: flutter config --enable-web
+  # Then: flutter run -d chrome

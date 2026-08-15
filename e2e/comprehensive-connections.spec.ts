@@ -2,15 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Comprehensive Connections Module Testing', () => {
   test.beforeEach(async ({ page }) => {
-    // Login before each test
-    await page.goto('/login');
-    await page.fill('input[type="email"]', 'mohsinbhalli147@gmail.com');
-    await page.fill('input[type="password"]', 'Zimal@123');
-    await page.click('button[type="submit"]');
-    // Wait for navigation to complete - check for any URL after login
-    await page.waitForLoadState('networkidle', { timeout: 15000 });
-    // Additional wait to ensure redirect completes
-    await page.waitForTimeout(2000);
+    // Use shared login helper with more robust timeouts
+    const { login } = await import('./utils/test-helpers');
+    await login(page);
   });
 
   test('should navigate to connections page', async ({ page }) => {
@@ -95,7 +89,7 @@ test.describe('Comprehensive Connections Module Testing', () => {
     });
     
     await page.goto('/connections');
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(5000);
     
     if (errors.length > 0) {
       console.log('Console errors on connections page:', errors);

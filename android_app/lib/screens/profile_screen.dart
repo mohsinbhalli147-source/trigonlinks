@@ -6,6 +6,7 @@ import '../providers/customer_provider.dart';
 import '../config/theme.dart';
 import '../utils/constants.dart';
 import 'change_password_screen.dart';
+import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -295,7 +296,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     if (confirmed == true) {
                       await context.read<AuthProvider>().logout();
                       if (mounted) {
-                        Navigator.of(context).pushReplacementNamed('/');
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => const LoginScreen()),
+                          (route) => false,
+                        );
                       }
                     }
                   },

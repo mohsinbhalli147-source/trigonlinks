@@ -17,6 +17,21 @@ class _BillsScreenState extends State<BillsScreen> {
     if (text.isEmpty) return text;
     return text.substring(0, text.length < length ? text.length : length);
   }
+
+  DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    if (value is String) {
+      final numeric = int.tryParse(value);
+      if (numeric != null) return DateTime.fromMillisecondsSinceEpoch(numeric);
+      try {
+        return DateTime.parse(value);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
   
   @override
   void initState() {
@@ -190,12 +205,16 @@ class _BillsScreenState extends State<BillsScreen> {
                         color: AppColors.textSecondary,
                       ),
                     ),
-                    Text(
-                      DateFormat('yyyy-MM-dd').format(DateTime.parse(dueDate)),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                    Builder(builder: (context) {
+                      final dt = _parseDate(dueDate);
+                      if (dt == null) return const SizedBox.shrink();
+                      return Text(
+                        DateFormat('yyyy-MM-dd').format(dt),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      );
+                    }),
                   ],
                 ),
               ],
@@ -205,12 +224,16 @@ class _BillsScreenState extends State<BillsScreen> {
                   children: [
                     Icon(Icons.event, size: 20, color: AppColors.textTertiary),
                     const SizedBox(width: 8),
-                    Text(
-                      'Issued: ${DateFormat('yyyy-MM-dd').format(DateTime.parse(createdAt))}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textTertiary,
-                      ),
-                    ),
+                    Builder(builder: (context) {
+                      final dt = _parseDate(createdAt);
+                      if (dt == null) return const SizedBox.shrink();
+                      return Text(
+                        'Issued: ${DateFormat('yyyy-MM-dd').format(dt)}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textTertiary,
+                        ),
+                      );
+                    }),
                   ],
                 ),
               ],

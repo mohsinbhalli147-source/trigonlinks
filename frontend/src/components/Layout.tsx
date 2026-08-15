@@ -34,9 +34,6 @@ export default function Layout() {
       { name: 'Active Customers', href: '/customers/active', emoji: '✅' },
       { name: 'Suspended Customers', href: '/customers/suspended', emoji: '⏸️' },
       { name: 'Customer Reports', href: '/customers/reports', emoji: '📈' },
-      { name: 'Advanced Search', href: '/customers/advanced-search', icon: Search, emoji: '🔍' },
-      { name: 'Bulk Operations', href: '/customers/bulk-operations', icon: SlidersHorizontal, emoji: '⚙️' },
-      { name: 'Export Data', href: '/customers/export', icon: Download, emoji: '📥' },
     ]
   },
   {

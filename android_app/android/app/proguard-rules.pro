@@ -36,6 +36,10 @@
 -keep class com.google.firebase.** { *; }
 -dontwarn com.google.firebase.**
 
+# Keep Play Core splitcompat classes used by Flutter's Play Store split integration
+-keep class com.google.android.play.core.splitcompat.** { *; }
+-dontwarn com.google.android.play.core.**
+
 # Dio
 -keepattributes Signature
 -keepattributes Exceptions

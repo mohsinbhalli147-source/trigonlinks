@@ -7,6 +7,7 @@ import '../config/theme.dart';
 import '../config/app_config.dart';
 import '../utils/constants.dart';
 import 'profile_screen.dart';
+import 'login_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -314,7 +315,10 @@ class SettingsScreen extends StatelessWidget {
                       if (confirmed == true) {
                         await context.read<AuthProvider>().logout();
                         if (context.mounted) {
-                          Navigator.of(context).pushReplacementNamed('/');
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(builder: (_) => const LoginScreen()),
+                            (route) => false,
+                          );
                         }
                       }
                     },

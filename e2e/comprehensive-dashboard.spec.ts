@@ -2,17 +2,14 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Comprehensive Dashboard Testing', () => {
   test.beforeEach(async ({ page }) => {
-    // Login before each test
-    await page.goto('/login');
-    await page.fill('input[type="email"]', 'mohsinbhalli147@gmail.com');
-    await page.fill('input[type="password"]', 'Zimal@123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { timeout: 30000 });
+    const { login } = await import('./utils/test-helpers');
+    await login(page);
   });
 
   test('should display dashboard with all widgets', async ({ page }) => {
     await expect(page.locator('text=TRIGONLINKS')).toBeVisible();
-    await expect(page.locator('h1:has-text("Dashboard")')).toBeVisible();
+    // Use role-based selector and pick the first matching heading to avoid strict-mode failures
+    await expect(page.getByRole('heading', { name: 'Dashboard' }).first()).toBeVisible();
   });
 
   test('should display customer statistics', async ({ page }) => {

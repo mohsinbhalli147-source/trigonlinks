@@ -70,9 +70,7 @@ class TrigonLinksApp extends StatelessWidget {
             builder: (context, child) {
               return MediaQuery(
                 data: MediaQuery.of(context).copyWith(
-                  textScaler: TextScaler.linear(
-                    themeProvider.textScaleFactor,
-                  ),
+                  textScaleFactor: themeProvider.textScaleFactor,
                 ),
                 child: child!,
               );

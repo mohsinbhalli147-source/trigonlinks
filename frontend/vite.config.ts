@@ -9,6 +9,15 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        entryFileNames: `assets/[name]-[hash:8].js`,
+        chunkFileNames: `assets/[name]-[hash:8].js`,
+        assetFileNames: `assets/[name]-[hash:8].[ext]`
+      }
+    }
+  },
   server: {
     port: 3000,
     hmr: {

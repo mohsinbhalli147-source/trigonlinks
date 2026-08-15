@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "jetro": {
+      "type": "stdio",
+      "command": "C:\\Users\\bhall\\.jetro\\runtime\\node-win32-x64.exe",
+      "args": [
+        "C:\\Users\\bhall\\.jetro\\mcp-server\\index.js"
+      ],
+      "env": {
+        "JET_WORKSPACE": "d:\\trigonlinks-erp",
+        "JET_API_URL": "https://api.jetro.ai",
+        "PATH": "C:\\Users\\bhall\\.jetro\\runtime;C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.20.8-hotspot\\bin;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Windows\\System32\\OpenSSH\\;C:\\Program Files\\nodejs\\;C:\\Program Files\\dotnet\\;C:\\Program Files\\Git\\cmd;C:\\Java\\jdk-17.0.12+7\\bin;C:\\Java\\jdk-17\\bin;C:\\Users\\bhall\\.local\\bin;C:\\Users\\bhall\\AppData\\Local\\Programs\\Python\\Launcher\\;C:\\Users\\bhall\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\bhall\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\Users\\bhall\\AppData\\Roaming\\npm;C:\\Users\\bhall\\AppData\\Local\\Programs\\Windsurf\\bin;C:\\Users\\bhall\\AppData\\Local\\Programs\\Ollama;C:\\Users\\bhall\\AppData\\Local\\Programs\\Eclipse Adoptium\\jdk-25.0.3.9-hotspot\\bin;;C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.12-7\\bin;C:\\Users\\bhall\\AppData\\Local\\Programs\\Devin\\bin;D:\\Devin\\bin;D:\\DOWNLOADS\\Zed\\bin;C:\\Users\\bhall\\AppData\\Local\\Programs\\cursor\\resources\\app\\bin"
+      }
+    }
+  }
+}

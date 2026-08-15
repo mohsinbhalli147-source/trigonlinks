@@ -17,6 +17,21 @@ class ComplaintsScreen extends StatefulWidget {
 class _ComplaintsScreenState extends State<ComplaintsScreen> {
   String _selectedFilter = 'all';
 
+  DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    if (value is String) {
+      final numeric = int.tryParse(value);
+      if (numeric != null) return DateTime.fromMillisecondsSinceEpoch(numeric);
+      try {
+        return DateTime.parse(value);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -232,13 +247,17 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
                   ),
                   const Spacer(),
                   if (createdAt != null)
-                    Text(
-                      DateFormat('MMM dd, yyyy').format(
-                        DateTime.fromMillisecondsSinceEpoch(createdAt),
-                      ),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textTertiary,
-                      ),
+                    Builder(
+                      builder: (context) {
+                        final dt = _parseDate(createdAt);
+                        if (dt == null) return const SizedBox.shrink();
+                        return Text(
+                          DateFormat('MMM dd, yyyy').format(dt),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.textTertiary,
+                          ),
+                        );
+                      },
                     ),
                 ],
               ),
@@ -271,16 +290,18 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
               if (complaint['created_at'] != null)
                 _buildDetailRow(
                   'Created',
-                  DateFormat('yyyy-MM-dd HH:mm').format(
-                    DateTime.fromMillisecondsSinceEpoch(complaint['created_at']),
-                  ),
+                  (() {
+                    final dt = _parseDate(complaint['created_at']);
+                    return dt != null ? DateFormat('yyyy-MM-dd HH:mm').format(dt) : '';
+                  })(),
                 ),
               if (complaint['updated_at'] != null)
                 _buildDetailRow(
                   'Last Updated',
-                  DateFormat('yyyy-MM-dd HH:mm').format(
-                    DateTime.fromMillisecondsSinceEpoch(complaint['updated_at']),
-                  ),
+                  (() {
+                    final dt = _parseDate(complaint['updated_at']);
+                    return dt != null ? DateFormat('yyyy-MM-dd HH:mm').format(dt) : '';
+                  })(),
                 ),
             ],
           ),

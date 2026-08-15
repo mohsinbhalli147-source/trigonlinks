@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+// Production backend URL fallback. Prefer environment variable `VITE_API_BASE_URL`.
+// Updated: 2026-08-04 - Cache bust v5 - HTTPS to avoid CORS redirect
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://lightgreen-rhinoceros-358548.hostingersite.com';
 
 let isRefreshing = false;
 let failedQueue: Array<{

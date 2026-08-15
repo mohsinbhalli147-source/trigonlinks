@@ -43,20 +43,32 @@ app.use(sanitizeInput);
 app.use(generalRateLimiter);
 app.use(slowDownMiddleware);
 
-// Allow all origins for development
-const allowedOrigins = ['*'];
+// Configure allowed origins
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:8080'];
 
-// Allow additional origins from environment variable
-if (process.env.ALLOWED_ORIGINS) {
-  const additionalOrigins = process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim());
-  allowedOrigins.push(...additionalOrigins);
+// Add production frontend origin
+if (process.env.NODE_ENV === 'production') {
+  allowedOrigins.push('https://trigonlinks-pasrur.web.app');
 }
 
 // CORS middleware - must come before helmet
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow all origins for development
-    callback(null, true);
+    // Allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Allow any localhost origin for development (Flutter Web uses dynamic ports)
+    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+      callback(null, true);
+    }
+    // Check if origin is in allowed list
+    else if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS policy: Origin not allowed'));
+    }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -65,11 +77,17 @@ app.use(cors({
 
 // Handle preflight requests explicitly
 app.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.sendStatus(200);
+  const origin = req.headers.origin;
+  // Allow any localhost origin for development (Flutter Web uses dynamic ports)
+  if (!origin || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:') || allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.sendStatus(200);
+  } else {
+    res.sendStatus(403);
+  }
 });
 
 // Standard middleware - temporarily disabled helmet for CORS debugging

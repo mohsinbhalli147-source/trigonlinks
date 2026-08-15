@@ -62,6 +62,23 @@ class AuthProvider with ChangeNotifier {
       );
       
       if (response.statusCode == 200) {
+        // Save tokens and user data
+        final accessToken = response.data['accessToken'];
+        final refreshToken = response.data['refreshToken'];
+        final userData = response.data['user'];
+        
+        if (accessToken != null) {
+          await _storageService.saveAccessToken(accessToken);
+        }
+        if (refreshToken != null) {
+          await _storageService.saveRefreshToken(refreshToken);
+        }
+        if (userData != null) {
+          await _storageService.saveUserData(userData);
+          _userData = userData;
+        }
+        
+        _isAuthenticated = true;
         return true;
       } else {
         _errorMessage = response.data['error'] ?? AppConstants.serverErrorMessage;

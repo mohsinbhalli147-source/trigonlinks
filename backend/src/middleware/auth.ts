@@ -43,7 +43,7 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
         let isCustomer = false;
         let userData;
 
-        if (!userResult.data || userResult.data.length === 0 && payload.role === 'customer') {
+        if ((!userResult.data || userResult.data.length === 0) && payload.role === 'customer') {
           const customerResult = await supabase
             .from('customers')
             .select('*')
@@ -129,7 +129,7 @@ export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFu
         let isCustomer = false;
         let userData;
 
-        if (!userResult.data || userResult.data.length === 0 && payload.role === 'customer') {
+        if ((!userResult.data || userResult.data.length === 0) && payload.role === 'customer') {
           const customerResult = await supabase
             .from('customers')
             .select('*')

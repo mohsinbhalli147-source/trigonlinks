@@ -2,13 +2,13 @@ class AppConfig {
   // API Configuration
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://trigonlink.pakdata.net/api',
+    defaultValue: 'https://lightgreen-rhinoceros-358548.hostingersite.com/api',
   );
   
   // App Configuration
   static const String appName = 'TrigonLinks';
   static const String appVersion = '1.0.0';
-  static const String companyWebsite = 'https://trigonlink.pakdata.net';
+  static const String companyWebsite = 'https://trigonlinks-pasrur.web.app';
   static const String supportEmail = 'support@trigonlinks.com';
   static const String supportPhone = '+92-307-7669999';
   static const String whatsappNumber = '+92-307-7669999';
