@@ -1,0 +1,41 @@
+name: Deploy Backend to Hostinger
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npm run build
+      - name: Create deployment package
+        run: |
+          mkdir -p deploy-package
+          cp -r dist deploy-package/
+          cp package.json package-lock.json deploy-package/
+          cp -r migrations deploy-package/ 2>/dev/null || true
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.HOSTINGER_FTP_SERVER }}
+          username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          local-dir: backend/deploy-package/
+          server-dir: /public_html/
+          exclude: |
+            **/node_modules/**
+            **/.git/**
+            **/src/**
+            **/test/**
