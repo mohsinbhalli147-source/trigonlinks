@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Plus, Edit, Trash2, Check } from 'lucide-react';
 import { customersApi } from '../services/api';
 import { toast } from '../components/Toast';
+import { useServerPagination } from '../hooks/useServerPagination';
+import { Pagination } from '../components/Pagination';
 
 interface Customer {
   id: string;
@@ -31,40 +33,37 @@ interface Customer {
 
 export default function CustomersSuspended() {
   const navigate = useNavigate();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
+  const fetchCustomers = useCallback(({ page, limit }: { page: number; limit: number }) => {
+    const params: any = { status: 'suspended', page, limit };
+    if (searchTerm) params.search = searchTerm;
+    return customersApi.getAll(params);
+  }, [searchTerm]);
+
+  const {
+    data: customers,
+    loading,
+    error,
+    page,
+    limit,
+    total,
+    totalPages,
+    setPage,
+    setLimit,
+    refresh,
+  } = useServerPagination<Customer>(fetchCustomers, { limit: 50 });
+
   useEffect(() => {
-    loadCustomers();
-  }, []);
-
-  const loadCustomers = async () => {
-    setLoading(true);
-    setError('');
-    const result = await customersApi.getAll({ status: 'suspended', limit: 100 });
-    if (result.success) {
-      setCustomers(result.data?.data || []);
-    } else {
-      setError(result.error || 'Failed to load customers');
-    }
-    setLoading(false);
-  };
-
-  const filteredCustomers = customers.filter(customer =>
-    customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.mobile?.includes(searchTerm) ||
-    (customer.cnic && customer.cnic.includes(searchTerm)) ||
-    (customer.address && customer.address.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (customer.live_ip_address && customer.live_ip_address.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+    setPage(1);
+  }, [searchTerm]);
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this customer?')) {
       const result = await customersApi.delete(id);
       if (result.success) {
-        loadCustomers();
+        refresh();
+        toast.success('Customer deleted successfully');
       } else {
         toast.error(result.error || 'Failed to delete customer');
       }
@@ -74,7 +73,8 @@ export default function CustomersSuspended() {
   const handleActivate = async (id: string) => {
     const result = await customersApi.update(id, { status: 'active' });
     if (result.success) {
-      loadCustomers();
+      refresh();
+      toast.success('Customer activated successfully');
     } else {
       toast.error(result.error || 'Failed to activate customer');
     }
@@ -142,7 +142,7 @@ export default function CustomersSuspended() {
               </tr>
             </thead>
             <tbody>
-              {filteredCustomers.map((customer) => (
+              {customers.map((customer) => (
                 <tr key={customer.id} className="border-b border-[#232D45] hover:bg-[#1B2540]/50">
                   <td className="py-3 px-2 text-sm font-bold text-[#14E8B4]">{customer.username || 'N/A'}</td>
                   <td className="py-3 px-2 text-sm text-[#EAF0FB]">{customer.name}</td>
@@ -184,7 +184,7 @@ export default function CustomersSuspended() {
                   </td>
                 </tr>
               ))}
-              {filteredCustomers.length === 0 && (
+              {customers.length === 0 && (
                 <tr>
                   <td colSpan={14} className="py-8 text-center text-[#5C6B85]">
                     No suspended customers found
@@ -195,9 +195,15 @@ export default function CustomersSuspended() {
           </table>
         </div>
 
-        <div className="mt-4 text-sm text-[#5C6B85]">
-          Showing {filteredCustomers.length} suspended customers
-        </div>
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          limit={limit}
+          onPageChange={setPage}
+          onLimitChange={(l) => { setLimit(l); setPage(1); }}
+          itemName="customers"
+        />
       </div>
     </div>
   );

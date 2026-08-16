@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Eye, Calendar, DollarSign, CheckCircle, User, Package, Filter, Download } from 'lucide-react';
 import { invoicesApi } from '../services/api';
+import { useServerPagination } from '../hooks/useServerPagination';
+import { Pagination } from '../components/Pagination';
 
 interface Payment {
   id: string;
@@ -17,37 +19,36 @@ interface Payment {
 export default function BillingPaid() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadPayments();
+  const fetchInvoices = useCallback(({ page, limit }: { page: number; limit: number }) => {
+    return invoicesApi.getAll({ status: 'paid', page, limit, sortBy: 'createdAt', sortOrder: 'desc' });
   }, []);
 
-  const loadPayments = async () => {
-    setLoading(true);
-    setError('');
-    const result = await invoicesApi.getAll({ status: 'paid', limit: 100, sortBy: 'createdAt', sortOrder: 'desc' });
-    if (result.success) {
-      const paidInvoices = (result.data?.data || []).map((inv: any) => ({
-        id: inv.id,
-        customerName: inv.customerName || '',
-        customerPhone: inv.customerPhone || inv.mobile || '',
-        package: inv.package || '',
-        amount: inv.paidAmount || inv.amount || 0,
-        paymentMethod: inv.paymentMethod || 'Cash',
-        paymentDate: inv.paidDate || inv.updatedAt
-          ? new Date(inv.paidDate || inv.updatedAt).toLocaleDateString()
-          : '',
-        invoiceNumber: inv.id.slice(0, 8).toUpperCase(),
-      }));
-      setPayments(paidInvoices);
-    } else {
-      setError(result.error || 'Failed to load payments');
-    }
-    setLoading(false);
-  };
+  const {
+    data: rawInvoices,
+    loading,
+    error,
+    page,
+    limit,
+    total,
+    totalPages,
+    setPage,
+    setLimit,
+    refresh,
+  } = useServerPagination<any>(fetchInvoices, { limit: 50 });
+
+  const payments: Payment[] = (rawInvoices || []).map((inv: any) => ({
+    id: inv.id,
+    customerName: inv.customerName || '',
+    customerPhone: inv.customerPhone || inv.mobile || '',
+    package: inv.package || '',
+    amount: inv.paidAmount || inv.amount || 0,
+    paymentMethod: inv.paymentMethod || 'Cash',
+    paymentDate: inv.paidDate || inv.updatedAt
+      ? new Date(inv.paidDate || inv.updatedAt).toLocaleDateString()
+      : '',
+    invoiceNumber: inv.id.slice(0, 8).toUpperCase(),
+  }));
 
   const filteredPayments = payments.filter(payment =>
     payment.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -169,6 +170,15 @@ export default function BillingPaid() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          limit={limit}
+          onPageChange={setPage}
+          onLimitChange={(l) => { setLimit(l); setPage(1); }}
+          itemName="payments"
+        />
       </div>
     </div>
   );

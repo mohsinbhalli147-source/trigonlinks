@@ -67,6 +67,13 @@ node_modules/
 .env.local
 .env.production
 .env.development
+.env.staging
+.env.test
+.env.*.local
+# Any file with .env extension (catches typos like "backend.env")
+*.env
+!*.env.example
+!trigonlinks-backend.env
 
 # dataconnect generated files
 .dataconnect

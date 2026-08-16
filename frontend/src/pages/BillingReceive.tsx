@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, DollarSign, CreditCard, Package, CheckCircle, AlertCircle, Receipt } from 'lucide-react';
 import { customersApi, billingApi } from '../services/api';
 import { toast } from '../components/Toast';
+import { useServerPagination } from '../hooks/useServerPagination';
+import { Pagination } from '../components/Pagination';
 
 interface Customer {
   id: string;
@@ -18,7 +20,7 @@ export default function BillingReceive() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const customerId = searchParams.get('customerId');
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
@@ -27,15 +29,32 @@ export default function BillingReceive() {
   const [notes, setNotes] = useState('');
   const [discountAmount, setDiscountAmount] = useState('');
   const [discountReason, setDiscountReason] = useState('');
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  const fetchCustomers = useCallback(({ page, limit }: { page: number; limit: number }) => {
+    const params: any = { page, limit };
+    if (searchTerm) params.search = searchTerm;
+    return customersApi.getAll(params);
+  }, [searchTerm]);
+
+  const {
+    data: customers,
+    loading,
+    error: paginationError,
+    page,
+    limit,
+    total,
+    totalPages,
+    setPage,
+    setLimit,
+    refresh,
+  } = useServerPagination<Customer>(fetchCustomers, { limit: 50 });
+
   useEffect(() => {
-    loadCustomers();
-  }, []);
+    setPage(1);
+  }, [searchTerm]);
 
   useEffect(() => {
     if (customerId && customers.length > 0) {
@@ -43,26 +62,18 @@ export default function BillingReceive() {
       if (customer) {
         setSelectedCustomer(customer);
         setPaymentAmount(customer.fee?.toString() || '');
+      } else {
+        // Customer might be on a different page, fetch by ID directly
+        customersApi.getById(customerId).then(result => {
+          if (result.success && result.data) {
+            const c = result.data;
+            setSelectedCustomer(c);
+            setPaymentAmount(c.fee?.toString() || '');
+          }
+        });
       }
     }
   }, [customerId, customers]);
-
-  const loadCustomers = async () => {
-    setLoading(true);
-    setError('');
-    const result = await customersApi.getAll({ limit: 1000 });
-    if (result.success) {
-      setCustomers(result.data?.data || result.data || []);
-    } else {
-      setError(result.error || 'Failed to load customers');
-    }
-    setLoading(false);
-  };
-
-  const filteredCustomers = customers.filter(customer =>
-    customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.mobile?.includes(searchTerm)
-  );
 
   const handleCustomerSelect = (customer: Customer) => {
     setSelectedCustomer(customer);
@@ -194,10 +205,10 @@ export default function BillingReceive() {
     );
   }
 
-  if (error) {
+  if (paginationError) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-[#F5514B]">{error}</div>
+        <div className="text-[#F5514B]">{paginationError}</div>
       </div>
     );
   }
@@ -223,7 +234,7 @@ export default function BillingReceive() {
             />
           </div>
           <div className="space-y-3 max-h-96 overflow-y-auto">
-            {filteredCustomers.map((customer) => (
+            {customers.map((customer) => (
               <div
                 key={customer.id}
                 onClick={() => handleCustomerSelect(customer)}
@@ -260,6 +271,15 @@ export default function BillingReceive() {
               </div>
             ))}
           </div>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            limit={limit}
+            onPageChange={setPage}
+            onLimitChange={(l) => { setLimit(l); setPage(1); }}
+            itemName="customers"
+          />
         </div>
 
         {/* Payment Form */}

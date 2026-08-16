@@ -2,6 +2,7 @@
 import { logger } from '../utils/logger';
 import { body, validationResult } from 'express-validator';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
+import { formatErrorResponse } from '../middleware/security';
 import { CustomerTagsRepository } from '../repositories/CustomerTagsRepository';
 import { CustomerLabelsRepository } from '../repositories/CustomerLabelsRepository';
 import { CustomerDocumentsRepository } from '../repositories/CustomerDocumentsRepository';
@@ -18,6 +19,9 @@ import { ConnectionsRepository } from '../repositories/ConnectionsRepository';
 import { getSupabaseClient } from '../database/client';
 
 const router = express.Router();
+
+// Apply authentication to all customer-advanced routes
+router.use(authenticate);
 const supabase = getSupabaseClient();
 
 // Initialize repositories
@@ -47,7 +51,7 @@ router.get('/tags/:customerId', async (req: AuthRequest, res) => {
     res.json({ success: true, data: tags });
   } catch (error: any) {
     logger.error('Error fetching customer tags:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -58,7 +62,7 @@ router.get('/tags/all', async (req: AuthRequest, res) => {
     res.json({ success: true, data: tags });
   } catch (error: any) {
     logger.error('Error fetching all tags:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -87,7 +91,7 @@ router.post('/tags', authorize('admin', 'staff'), async (req: AuthRequest, res) 
     res.json({ success: true, data: tag });
   } catch (error: any) {
     logger.error('Error adding customer tag:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -110,7 +114,7 @@ router.delete('/tags/:customerId/:tagName', authorize('admin', 'staff'), async (
     res.json({ success: true, message: 'Tag removed successfully' });
   } catch (error: any) {
     logger.error('Error removing customer tag:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -124,7 +128,7 @@ router.get('/labels/:customerId', async (req: AuthRequest, res) => {
     res.json({ success: true, data: labels });
   } catch (error: any) {
     logger.error('Error fetching customer labels:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -154,7 +158,7 @@ router.post('/labels', authorize('admin', 'staff'), async (req: AuthRequest, res
     res.json({ success: true, data: label });
   } catch (error: any) {
     logger.error('Error adding customer label:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -177,7 +181,7 @@ router.delete('/labels/:customerId/:labelName/:labelType', authorize('admin', 's
     res.json({ success: true, message: 'Label removed successfully' });
   } catch (error: any) {
     logger.error('Error removing customer label:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -216,7 +220,7 @@ router.put('/rating-priority/:customerId', authorize('admin', 'staff'), async (r
     res.json({ success: true, data: customer });
   } catch (error: any) {
     logger.error('Error updating customer rating/priority:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -230,7 +234,7 @@ router.get('/documents/:customerId', async (req: AuthRequest, res) => {
     res.json({ success: true, data: documents });
   } catch (error: any) {
     logger.error('Error fetching customer documents:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -264,7 +268,7 @@ router.post('/documents', authorize('admin', 'staff'), async (req: AuthRequest, 
     res.json({ success: true, data: document });
   } catch (error: any) {
     logger.error('Error uploading document:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -290,7 +294,7 @@ router.delete('/documents/:documentId', authorize('admin', 'staff'), async (req:
     res.json({ success: true, message: 'Document deleted successfully' });
   } catch (error: any) {
     logger.error('Error deleting document:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -304,7 +308,7 @@ router.get('/notes/:customerId', async (req: AuthRequest, res) => {
     res.json({ success: true, data: notes });
   } catch (error: any) {
     logger.error('Error fetching customer notes:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -334,7 +338,7 @@ router.post('/notes', async (req: AuthRequest, res) => {
     res.json({ success: true, data: note });
   } catch (error: any) {
     logger.error('Error adding customer note:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -354,7 +358,7 @@ router.put('/notes/:noteId', async (req: AuthRequest, res) => {
     res.json({ success: true, data: note });
   } catch (error: any) {
     logger.error('Error updating customer note:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -367,7 +371,7 @@ router.put('/notes/:noteId/pin', async (req: AuthRequest, res) => {
     res.json({ success: true, data: note });
   } catch (error: any) {
     logger.error('Error toggling note pin:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -379,7 +383,7 @@ router.delete('/notes/:noteId', async (req: AuthRequest, res) => {
     res.json({ success: true, message: 'Note deleted successfully' });
   } catch (error: any) {
     logger.error('Error deleting customer note:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -393,7 +397,7 @@ router.get('/staff-notes/:customerId', async (req: AuthRequest, res) => {
     res.json({ success: true, data: notes });
   } catch (error: any) {
     logger.error('Error fetching staff notes:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -424,7 +428,7 @@ router.post('/staff-notes', authorize('admin', 'staff'), async (req: AuthRequest
     res.json({ success: true, data: note });
   } catch (error: any) {
     logger.error('Error adding staff note:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -445,7 +449,7 @@ router.put('/staff-notes/:noteId', authorize('admin', 'staff'), async (req: Auth
     res.json({ success: true, data: note });
   } catch (error: any) {
     logger.error('Error updating staff note:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -457,7 +461,7 @@ router.delete('/staff-notes/:noteId', authorize('admin'), async (req: AuthReques
     res.json({ success: true, message: 'Staff note deleted successfully' });
   } catch (error: any) {
     logger.error('Error deleting staff note:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -477,7 +481,7 @@ router.get('/family-account/:customerId', async (req: AuthRequest, res) => {
     }
   } catch (error: any) {
     logger.error('Error fetching family account:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -496,7 +500,7 @@ router.post('/family-accounts', authorize('admin', 'staff'), async (req: AuthReq
     res.json({ success: true, data: account });
   } catch (error: any) {
     logger.error('Error creating family account:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -516,7 +520,7 @@ router.post('/family-accounts/:accountId/members', authorize('admin', 'staff'), 
     res.json({ success: true, data: member });
   } catch (error: any) {
     logger.error('Error adding family member:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -534,7 +538,7 @@ router.get('/activity/:customerId', async (req: AuthRequest, res) => {
     res.json({ success: true, data: activities });
   } catch (error: any) {
     logger.error('Error fetching activity timeline:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -547,7 +551,7 @@ router.get('/saved-filters', async (req: AuthRequest, res) => {
     res.json({ success: true, data: filters });
   } catch (error: any) {
     logger.error('Error fetching saved filters:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -567,7 +571,7 @@ router.post('/saved-filters', async (req: AuthRequest, res) => {
     res.json({ success: true, data: filter });
   } catch (error: any) {
     logger.error('Error creating saved filter:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -586,7 +590,7 @@ router.put('/saved-filters/:filterId', async (req: AuthRequest, res) => {
     res.json({ success: true, data: filter });
   } catch (error: any) {
     logger.error('Error updating saved filter:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -598,7 +602,7 @@ router.delete('/saved-filters/:filterId', async (req: AuthRequest, res) => {
     res.json({ success: true, message: 'Filter deleted successfully' });
   } catch (error: any) {
     logger.error('Error deleting saved filter:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -611,7 +615,7 @@ router.get('/bulk-operations', authorize('admin', 'staff'), async (req: AuthRequ
     res.json({ success: true, data: operations });
   } catch (error: any) {
     logger.error('Error fetching bulk operations:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -632,7 +636,7 @@ router.post('/bulk-operations', authorize('admin', 'staff'), async (req: AuthReq
     res.json({ success: true, data: operation });
   } catch (error: any) {
     logger.error('Error creating bulk operation:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -699,7 +703,7 @@ router.post('/bulk-suspend', authorize('admin', 'staff'), async (req: AuthReques
     res.json({ success: true, data: { operation, successCount, failureCount } });
   } catch (error: any) {
     logger.error('Error executing bulk suspend:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -766,7 +770,7 @@ router.post('/bulk-activate', authorize('admin', 'staff'), async (req: AuthReque
     res.json({ success: true, data: { operation, successCount, failureCount } });
   } catch (error: any) {
     logger.error('Error executing bulk activate:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -854,7 +858,7 @@ router.post('/bulk-package-change', authorize('admin', 'staff'), async (req: Aut
     res.json({ success: true, data: { operation, successCount, failureCount } });
   } catch (error: any) {
     logger.error('Error executing bulk package change:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -946,7 +950,7 @@ router.post('/bulk-billing', authorize('admin', 'staff'), async (req: AuthReques
     res.json({ success: true, data: { operation, successCount, failureCount } });
   } catch (error: any) {
     logger.error('Error executing bulk billing:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -1022,7 +1026,7 @@ router.post('/bulk-sms', authorize('admin', 'staff'), async (req: AuthRequest, r
     res.json({ success: true, data: { operation, successCount, failureCount } });
   } catch (error: any) {
     logger.error('Error executing bulk SMS:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -1098,7 +1102,7 @@ router.post('/bulk-whatsapp', authorize('admin', 'staff'), async (req: AuthReque
     res.json({ success: true, data: { operation, successCount, failureCount } });
   } catch (error: any) {
     logger.error('Error executing bulk WhatsApp:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -1110,7 +1114,7 @@ router.get('/bulk-operations/:operationId/results', authorize('admin', 'staff'),
     res.json({ success: true, data: results });
   } catch (error: any) {
     logger.error('Error fetching bulk operation results:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -1144,7 +1148,7 @@ router.post('/export/csv', authorize('admin', 'staff'), async (req: AuthRequest,
     res.send(csvContent);
   } catch (error: any) {
     logger.error('Error exporting CSV:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -1177,7 +1181,7 @@ router.post('/export/excel', authorize('admin', 'staff'), async (req: AuthReques
     res.json({ success: true, data: exportData });
   } catch (error: any) {
     logger.error('Error exporting Excel:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -1194,7 +1198,7 @@ router.post('/export/pdf', authorize('admin', 'staff'), async (req: AuthRequest,
     });
   } catch (error: any) {
     logger.error('Error exporting PDF:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -1212,7 +1216,7 @@ router.get('/package-history/:customerId', async (req: AuthRequest, res) => {
     res.json({ success: true, data: history });
   } catch (error: any) {
     logger.error('Error fetching package history:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -1228,7 +1232,7 @@ router.get('/connection-history/:customerId', async (req: AuthRequest, res) => {
     res.json({ success: true, data: history });
   } catch (error: any) {
     logger.error('Error fetching connection history:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 
@@ -1344,7 +1348,7 @@ router.post('/search', async (req: AuthRequest, res) => {
     });
   } catch (error: any) {
     logger.error('Error in advanced search:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: formatErrorResponse(error) });
   }
 });
 

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { Pool, PoolClient } from 'pg';
+import { readFileSync } from 'fs';
 import { logger } from '../utils/logger';
 import dotenv from 'dotenv';
 
@@ -8,11 +9,19 @@ dotenv.config();
 // Database type selection
 const DB_TYPE = process.env.DB_TYPE || 'supabase'; // 'supabase' or 'cockroachdb'
 
-// Supabase client (for backward compatibility)
+// Supabase client using the ANON key. This respects Row Level Security (RLS)
+// policies and is the default client used across the application.
 const supabase = createClient(
   process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_ANON_KEY!
 );
+
+// Supabase admin client using the SERVICE ROLE key. This BYPASSES RLS and must
+// only be used for privileged operations (user management, password resets,
+// migrations) that explicitly require elevated access.
+const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+  : supabase;
 
 // CockroachDB connection pool
 let cockroachPool: Pool;
@@ -28,10 +37,12 @@ const initializeCockroachPool = () => {
       max: process.env.DB_POOL_MAX ? parseInt(process.env.DB_POOL_MAX) : 20,
       idleTimeoutMillis: process.env.DB_IDLE_TIMEOUT ? parseInt(process.env.DB_IDLE_TIMEOUT) : 30000,
       connectionTimeoutMillis: process.env.DB_CONNECTION_TIMEOUT ? parseInt(process.env.DB_CONNECTION_TIMEOUT) : 2000,
-      // SSL configuration for CockroachDB (sslmode=require)
-      ssl: {
-        rejectUnauthorized: false // Allow SSL without CA verification for now
-      }
+      // SSL configuration for CockroachDB.
+      // If DB_SSL_ROOT_CERT is set, the connection is fully verified against that CA.
+      // Otherwise sslmode=require still encrypts but cannot verify the server identity.
+      ...(process.env.DB_SSL_ROOT_CERT
+        ? { ssl: { ca: readFileSync(process.env.DB_SSL_ROOT_CERT).toString(), rejectUnauthorized: true } }
+        : { ssl: { rejectUnauthorized: false } })
     });
     
     logger.info('CockroachDB connection pool initialized');
@@ -107,8 +118,13 @@ export const closePool = async (): Promise<void> => {
   }
 };
 
-// Get Supabase client instance (for backward compatibility)
+// Get Supabase client instance (anon key — RLS enforced)
 export const getSupabaseClient = () => supabase;
+
+// Get Supabase admin client instance (service role — bypasses RLS).
+// Use ONLY for privileged operations such as user creation, password updates,
+// and migrations. Never use this client for regular customer-facing queries.
+export const getAdminClient = () => supabaseAdmin;
 
 // Get database type
 export const getDatabaseType = () => DB_TYPE;

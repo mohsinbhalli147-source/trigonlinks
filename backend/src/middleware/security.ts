@@ -5,16 +5,18 @@ import { logger } from '../utils/logger';
 // General rate limiter for all requests
 export const generalRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Limit each IP to 1000 requests per windowMs
+  max: 500, // Limit each IP to 500 requests per windowMs
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// Stricter rate limiter for authentication endpoints
+// Stricter rate limiter for authentication endpoints.
+// 20 attempts per 15 minutes is sufficient for legitimate users while
+// making brute-force and credential-stuffing attacks impractical.
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // Limit each IP to 500 auth requests per windowMs (increased for development)
+  max: 20, // Limit each IP to 20 auth requests per windowMs
   message: 'Too many authentication attempts, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -23,7 +25,7 @@ export const authRateLimiter = rateLimit({
 // Rate limiter for API endpoints
 export const apiRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 2000, // Limit each IP to 2000 API requests per windowMs
+  max: 1000, // Limit each IP to 1000 API requests per windowMs
   message: 'Too many API requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -32,7 +34,7 @@ export const apiRateLimiter = rateLimit({
 // Slow down requests that are approaching the limit
 export const slowDownMiddleware = slowDown({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  delayAfter: 500, // Allow 50 requests per 15 minutes at full speed
+  delayAfter: 200, // Allow 200 requests per 15 minutes at full speed
   delayMs: () => 500, // Add 500ms delay per request after delayAfter
   validate: { delayMs: false }, // Disable warning
 });
@@ -96,4 +98,14 @@ export const securityLogger = (req: any, res: any, next: any) => {
   });
   
   next();
+};
+
+// Safely format an error for an API response.
+// In development the full error message is returned (useful for debugging).
+// In production only a generic message is sent so internal details are not leaked.
+export const formatErrorResponse = (error: unknown, fallbackMessage = "Internal server error"): string => {
+  if (process.env.NODE_ENV === "development") {
+    return error instanceof Error ? error.message : String(error);
+  }
+  return fallbackMessage;
 };

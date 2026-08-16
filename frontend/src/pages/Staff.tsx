@@ -33,7 +33,8 @@ export default function Staff() {
     setError('');
     const result = await staffApi.getAll();
     if (result.success) {
-      setStaff(result.data);
+      const raw = result.data;
+      setStaff(Array.isArray(raw) ? raw : (raw?.data || []));
     } else {
       setError(result.error || 'Failed to load staff');
     }

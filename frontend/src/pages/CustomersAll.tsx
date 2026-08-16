@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Edit, Trash2, Users, CheckCircle, DollarSign, AlertCircle, Eye, CreditCard, PauseCircle, PlayCircle, RefreshCw, Phone, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Users, CheckCircle, DollarSign, AlertCircle, Eye, CreditCard, PauseCircle, PlayCircle, RefreshCw, Phone, MapPin } from 'lucide-react';
 import { customersApi, dashboardApi } from '../services/api';
 import { toast } from '../components/Toast';
+import { useServerPagination } from '../hooks/useServerPagination';
+import { Pagination } from '../components/Pagination';
 
 interface Customer {
   id: string;
@@ -31,32 +33,40 @@ interface Customer {
 
 export default function CustomersAll() {
   const navigate = useNavigate();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'suspended' | 'inactive'>('all');
   const [showMobileView, setShowMobileView] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(50);
+
+  const fetchCustomers = useCallback(({ page, limit }: { page: number; limit: number }) => {
+    const params: any = { page, limit };
+    if (searchTerm) params.search = searchTerm;
+    if (filterStatus !== 'all') params.status = filterStatus;
+    return customersApi.getAll(params);
+  }, [searchTerm, filterStatus]);
+
+  const {
+    data: customers,
+    loading: paginationLoading,
+    error: paginationError,
+    page,
+    limit,
+    total,
+    totalPages,
+    setPage,
+    setLimit,
+    refresh,
+  } = useServerPagination<Customer>(fetchCustomers, { limit: 50 });
 
   useEffect(() => {
-    loadCustomers();
+    setPage(1);
+  }, [searchTerm, filterStatus]);
+
+  useEffect(() => {
     loadDashboardStats();
   }, []);
-
-  const loadCustomers = async () => {
-    setLoading(true);
-    setError('');
-    const result = await customersApi.getAll({ limit: 1000, page: 1 });
-    if (result.success) {
-      setCustomers(result.data?.data || []);
-    } else {
-      setError(result.error || 'Failed to load customers');
-    }
-    setLoading(false);
-  };
 
   const loadDashboardStats = async () => {
     const result = await dashboardApi.getStatistics({ stage: 'summary' });
@@ -65,34 +75,11 @@ export default function CustomersAll() {
     }
   };
 
-  const filteredCustomers = customers.filter(customer => {
-    const matchesSearch = 
-      customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.mobile?.includes(searchTerm) ||
-      (customer.cnic && customer.cnic.includes(searchTerm)) ||
-      (customer.address && customer.address.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (customer.live_ip_address && customer.live_ip_address.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesFilter = filterStatus === 'all' || customer.status === filterStatus;
-    
-    return matchesSearch && matchesFilter;
-  });
-
-  // Pagination
-  const indexOfLastCustomer = currentPage * itemsPerPage;
-  const indexOfFirstCustomer = indexOfLastCustomer - itemsPerPage;
-  const currentCustomers = filteredCustomers.slice(indexOfFirstCustomer, indexOfLastCustomer);
-  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, filterStatus]);
-
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this customer?')) {
       const result = await customersApi.delete(id);
       if (result.success) {
-        loadCustomers();
+        refresh();
         loadDashboardStats();
         toast.success('Customer deleted successfully');
       } else {
@@ -104,7 +91,7 @@ export default function CustomersAll() {
   const handleStatusChange = async (id: string, newStatus: 'active' | 'suspended' | 'inactive') => {
     const result = await customersApi.update(id, { status: newStatus });
     if (result.success) {
-      loadCustomers();
+      refresh();
       loadDashboardStats();
       toast.success(`Customer ${newStatus} successfully`);
     } else {
@@ -116,7 +103,10 @@ export default function CustomersAll() {
     navigate(`/billing/receive?customerId=${customerId}`);
   };
 
-  if (loading) {
+  const isLoading = loading || paginationLoading;
+  const errorMsg = error || paginationError;
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-[#8996AD]">Loading customers...</div>
@@ -124,10 +114,10 @@ export default function CustomersAll() {
     );
   }
 
-  if (error) {
+  if (errorMsg) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-[#F5514B]">{error}</div>
+        <div className="text-[#F5514B]">{errorMsg}</div>
       </div>
     );
   }
@@ -159,7 +149,7 @@ export default function CustomersAll() {
               <span className="sm:hidden">Add</span>
             </button>
             <button
-              onClick={() => { loadCustomers(); loadDashboardStats(); }}
+              onClick={() => { refresh(); loadDashboardStats(); }}
               className="flex items-center gap-2 px-4 py-2 bg-[#232D45] text-[#EAF0FB] font-semibold rounded-lg hover:bg-[#2D3A52] transition-all duration-200"
             >
               <RefreshCw className="w-4 h-4" />
@@ -299,9 +289,9 @@ export default function CustomersAll() {
                 </tr>
               </thead>
               <tbody>
-                {currentCustomers.map((customer, index) => (
+                {customers.map((customer, index) => (
                   <tr key={customer.id} className="border-b border-[#232D45] hover:bg-[#1B2540]/80 transition-all duration-200">
-                    <td className="py-4 px-4 text-sm font-bold text-[#14E8B4]">{indexOfFirstCustomer + index + 1}</td>
+                    <td className="py-4 px-4 text-sm font-bold text-[#14E8B4]">{(page - 1) * limit + index + 1}</td>
                     <td className="py-4 px-4">
                       <div>
                         <p className="text-sm font-bold text-[#EAF0FB]">{customer.name}</p>
@@ -396,34 +386,19 @@ export default function CustomersAll() {
           </div>
 
           {/* Pagination */}
-          <div className="px-4 py-3 border-t border-[#232D45] flex items-center justify-between text-sm">
-            <span className="text-[#5C6B85]">
-              Showing <span className="font-semibold text-[#EAF0FB]">{indexOfFirstCustomer + 1}-{Math.min(indexOfLastCustomer, filteredCustomers.length)}</span> of <span className="font-semibold text-[#EAF0FB]">{filteredCustomers.length}</span> customers
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className="p-2 text-[#8996AD] hover:text-[#EAF0FB] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all duration-200"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <span className="text-[#EAF0FB] font-semibold">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                className="p-2 text-[#8996AD] hover:text-[#EAF0FB] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all duration-200"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            limit={limit}
+            onPageChange={setPage}
+            onLimitChange={(l) => { setLimit(l); setPage(1); }}
+            itemName="customers"
+          />
         </div>
 
         {/* Empty State */}
-        {filteredCustomers.length === 0 && (
+        {customers.length === 0 && (
           <div className="bg-gradient-to-br from-[#121B2E] to-[#1B2540] border border-[#232D45] rounded-xl p-12 text-center">
             <Users className="w-16 h-16 text-[#5C6B85] mx-auto mb-4" />
             <p className="text-xl font-medium text-[#EAF0FB] mb-2">No customers found</p>

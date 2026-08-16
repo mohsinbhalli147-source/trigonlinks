@@ -4,6 +4,7 @@ import { logger } from '../../utils/logger';
 import dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 
 dotenv.config();
 
@@ -40,9 +41,9 @@ export class MigrationManager {
       
       this.pgPool = new Pool({
         connectionString: connectionString,
-        ssl: {
-          rejectUnauthorized: false // For Supabase, we need to allow self-signed certs
-        },
+        ssl: process.env.DB_SSL_ROOT_CERT
+          ? { ca: fs.readFileSync(process.env.DB_SSL_ROOT_CERT).toString(), rejectUnauthorized: true }
+          : { rejectUnauthorized: false },
         connectionTimeoutMillis: 10000,
       });
     } catch (error) {
@@ -143,7 +144,6 @@ export class MigrationManager {
    * Generate checksum for migration content
    */
   private generateChecksum(content: string): string {
-    const crypto = require('crypto');
     return crypto.createHash('sha256').update(content).digest('hex');
   }
 

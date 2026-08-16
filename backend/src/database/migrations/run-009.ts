@@ -16,9 +16,9 @@ async function runMigration009() {
     database: process.env.DATABASE_NAME,
     user: process.env.DATABASE_USER,
     password: process.env.DATABASE_PASSWORD,
-    ssl: {
-      rejectUnauthorized: false
-    },
+    ssl: process.env.DB_SSL_ROOT_CERT
+      ? { ca: fs.readFileSync(process.env.DB_SSL_ROOT_CERT).toString(), rejectUnauthorized: true }
+      : { rejectUnauthorized: false },
     connectionTimeoutMillis: 10000,
   });
 

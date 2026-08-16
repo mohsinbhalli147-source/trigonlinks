@@ -8,6 +8,7 @@ import { googleContactsService } from '../services/google-contacts';
 import { getSupabaseClient } from '../database/client';
 import crypto from 'crypto';
 import { convertObjectKeysToSnake, convertObjectKeysToCamel } from '../utils/fieldConverter';
+import { formatErrorResponse } from '../middleware/security';
 
 const router = express.Router();
 const customersRepo = new CustomersRepository();
@@ -76,8 +77,12 @@ router.get('/:id', authorize('admin', 'staff', 'customer'), async (req: AuthRequ
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
-    // Try to find by database ID first, then by UID
-    let customer = await customersRepo.findById(req.params.id);
+    // Validate UUID format before querying UUID columns to avoid DB syntax errors
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let customer = null;
+    if (UUID_RE.test(req.params.id)) {
+      customer = await customersRepo.findById(req.params.id);
+    }
     if (!customer) {
       customer = await customersRepo.findByUid(req.params.id);
     }
@@ -91,7 +96,7 @@ router.get('/:id', authorize('admin', 'staff', 'customer'), async (req: AuthRequ
     res.json(customerCamel);
   } catch (error: any) {
     logger.error('Get customer error:', error);
-    res.status(500).json({ error: 'Failed to fetch customer', details: error.message });
+    res.status(500).json({ error: 'Failed to fetch customer', details: formatErrorResponse(error) });
   }
 });
 

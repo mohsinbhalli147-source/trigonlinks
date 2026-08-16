@@ -15,11 +15,13 @@ import {
 import { authenticate, AuthRequest, authorize } from '../middleware/auth';
 import { cache } from '../utils/cache';
 import { sendPasswordResetEmail, isEmailConfigured } from '../utils/mail';
-import { getSupabaseClient } from '../database/client';
+import { getSupabaseClient, getAdminClient } from '../database/client';
 import { UsersRepository } from '../repositories/UsersRepository';
+import { formatErrorResponse } from '../middleware/security';
 
 const router = express.Router();
 const supabase = getSupabaseClient();
+const supabaseAdmin = getAdminClient();
 const usersRepo = new UsersRepository();
 
 // Register new user (admin only)
@@ -50,7 +52,7 @@ router.post('/register', authenticate, authorize('admin'), [
     const uid = crypto.randomUUID();
 
     // Create user in PostgreSQL via Supabase
-    const { data: result, error: insertError } = await supabase
+    const { data: result, error: insertError } = await supabaseAdmin
       .from('users')
       .insert({
         uid,
@@ -116,7 +118,7 @@ router.post('/login', [
       role: user.role,
     });
 
-    await supabase
+    await supabaseAdmin
       .from('refresh_tokens')
       .insert({
         token: tokens.refreshToken,
@@ -125,7 +127,7 @@ router.post('/login', [
         expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000
       });
 
-    await supabase
+    await supabaseAdmin
       .from('users')
       .update({ last_login_at: Date.now() })
       .eq('id', user.id);
@@ -185,7 +187,7 @@ router.post('/customer-login', [
     });
 
     try {
-      await supabase
+      await supabaseAdmin
         .from('refresh_tokens')
         .insert({
           token: tokens.refreshToken,
@@ -231,7 +233,7 @@ router.post('/refresh', async (req, res) => {
     logger.info('Refresh token verified for user:', payload.uid);
 
     // Check if refresh token exists in database
-    const { data: tokenData, error: tokenError } = await supabase
+    const { data: tokenData, error: tokenError } = await supabaseAdmin
       .from('refresh_tokens')
       .select('*')
       .eq('token', refreshToken)
@@ -252,7 +254,7 @@ router.post('/refresh', async (req, res) => {
     // Check if token is expired
     if (token.expires_at < Date.now()) {
       logger.info('Refresh token expired, deleting');
-      await supabase.from('refresh_tokens').delete().eq('id', token.id);
+      await supabaseAdmin.from('refresh_tokens').delete().eq('id', token.id);
       return res.status(401).json({ error: 'Refresh token expired' });
     }
 
@@ -283,8 +285,8 @@ router.post('/refresh', async (req, res) => {
     });
 
     // Delete old refresh token and store new one
-    await supabase.from('refresh_tokens').delete().eq('id', token.id);
-    await supabase
+    await supabaseAdmin.from('refresh_tokens').delete().eq('id', token.id);
+    await supabaseAdmin
       .from('refresh_tokens')
       .insert({
         token: tokens.refreshToken,
@@ -310,7 +312,7 @@ router.post('/logout', async (req, res) => {
 
     if (refreshToken) {
       // Delete refresh token from database
-      await supabase.from('refresh_tokens').delete().eq('token', refreshToken);
+      await supabaseAdmin.from('refresh_tokens').delete().eq('token', refreshToken);
     }
 
     res.json({ message: 'Logged out successfully' });
@@ -343,35 +345,30 @@ router.post('/forgot-password', [
     const otp = generateOTP();
 
     // Store OTP
-    storeOTP(email, otp);
+    storeOTP(email, otp).catch(err => logger.error('[OTP] storeOTP failed:', err));
 
     if (isEmailConfigured()) {
       try {
         await sendPasswordResetEmail(email, otp);
-        return res.json({ 
-          message: 'OTP sent to email',
-          otp: process.env.NODE_ENV !== 'production' ? otp : undefined // Show OTP in dev mode
-        });
+        return res.json({ message: 'OTP sent to email' });
       } catch (mailError: any) {
         logger.error('Password reset email send failure:', mailError);
-        // Return OTP in development mode if email fails
-        return res.json({ 
-          message: 'Email service failed. Development mode OTP: ' + otp,
-          otp: otp
-        });
+        // Email failed; never expose the OTP in the response.
+        // In development, log it so the developer can still test the flow.
+        if (process.env.NODE_ENV !== 'production') {
+          logger.info(`[DEV] Password reset OTP for ${email}: ${otp}`);
+        }
+        return res.json({ message: 'If the email exists, an OTP will be sent' });
       }
     } else {
       logger.warn('Password reset requested but email service is not configured.');
-      // Return OTP in development mode if email not configured
-      return res.json({ 
-        message: 'Email service not configured. Development mode OTP: ' + otp,
-        otp: otp
-      });
+      // Email not configured; never expose the OTP in the response.
+      // In development, log it so the developer can still test the flow.
+      if (process.env.NODE_ENV !== 'production') {
+        logger.info(`[DEV] Password reset OTP for ${email}: ${otp}`);
+      }
+      return res.json({ message: 'If the email exists, an OTP will be sent' });
     }
-
-    res.json({ 
-      message: 'If the email exists, an OTP will be sent'
-    });
   } catch (error: any) {
     logger.error('Forgot password error:', error);
     res.status(500).json({ error: 'Failed to process request' });
@@ -395,7 +392,7 @@ router.post('/reset-password', [
     logger.info('Reset password request:', { email, otp: otp ? '***' : 'missing', password: password ? '***' : 'missing' });
 
     // Verify OTP
-    const otpValid = verifyOTP(email, otp);
+    const otpValid = await verifyOTP(email, otp);
     logger.info('OTP verification result:', otpValid);
     
     if (!otpValid) {
@@ -415,7 +412,7 @@ router.post('/reset-password', [
     const hashedPassword = await hashPassword(password);
 
     // Update user password
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from('users')
       .update({ password_hash: hashedPassword, updated_at: Date.now() })
       .eq('id', user.id);
@@ -426,13 +423,13 @@ router.post('/reset-password', [
     }
 
     // Delete all refresh tokens for this user
-    await supabase.from('refresh_tokens').delete().eq('user_id', user.id);
+    await supabaseAdmin.from('refresh_tokens').delete().eq('user_id', user.id);
 
     res.json({ message: 'Password reset successfully' });
   } catch (error: any) {
     logger.error('Reset password error:', error);
     logger.error('Reset password error:', error);
-    res.status(500).json({ error: 'Failed to reset password', details: error.message });
+    res.status(500).json({ error: 'Failed to reset password', details: formatErrorResponse(error) });
   }
 });
 
@@ -470,13 +467,13 @@ router.post('/change-password', authenticate, [
     const hashedPassword = await hashPassword(newPassword);
 
     // Update password
-    await supabase
+    await supabaseAdmin
       .from('users')
       .update({ password_hash: hashedPassword, updated_at: Date.now() })
       .eq('id', user.id);
 
     // Delete all refresh tokens for this user
-    await supabase.from('refresh_tokens').delete().eq('user_id', user.id);
+    await supabaseAdmin.from('refresh_tokens').delete().eq('user_id', user.id);
 
     // Invalidate cache
     cache.delete(`user:${userId}`);

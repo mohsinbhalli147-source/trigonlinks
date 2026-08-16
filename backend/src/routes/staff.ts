@@ -6,6 +6,7 @@ import { StaffRepository } from '../repositories/StaffRepository';
 import { getSupabaseClient } from '../database/client';
 import { cache } from '../utils/cache';
 import { hashPassword } from '../utils/auth';
+import { formatErrorResponse } from '../middleware/security';
 
 const router = express.Router();
 const supabase = getSupabaseClient();
@@ -181,6 +182,12 @@ router.post('/', authorize('admin'), [
     if (req.body.address) {
       staffData.address = req.body.address;
     }
+    if (req.body.cnic) {
+      staffData.cnic = req.body.cnic;
+    }
+    if (req.body.position) {
+      staffData.position = req.body.position;
+    }
     
     const staff = await staffRepo.createStaff(staffData);
     
@@ -197,7 +204,7 @@ router.post('/', authorize('admin'), [
       hint: error.hint,
       body: req.body
     });
-    res.status(500).json({ error: 'Failed to create staff', details: error.message });
+    res.status(500).json({ error: 'Failed to create staff', details: formatErrorResponse(error) });
   }
 });
 

@@ -19,6 +19,7 @@ import {
 import { logger } from './utils/logger';
 import { runStartupMigrations } from './database/migrations/startup';
 import { getBackupScheduler } from './services/backup-scheduler';
+import { getInvoiceScheduler } from './services/invoice-scheduler';
 
 // Global error handlers for uncaught exceptions and unhandled rejections
 process.on('uncaughtException', (error) => {
@@ -51,6 +52,12 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 // Add production frontend origin
 if (process.env.NODE_ENV === 'production') {
   allowedOrigins.push('https://trigonlinks-pasrur.web.app');
+  // In production, strip any localhost entries to prevent cross-origin attacks
+  for (let i = allowedOrigins.length - 1; i >= 0; i--) {
+    if (allowedOrigins[i].includes('localhost') || allowedOrigins[i].includes('127.0.0.1')) {
+      allowedOrigins.splice(i, 1);
+    }
+  }
 }
 
 // CORS middleware - must come before helmet
@@ -59,8 +66,9 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
     
-    // Allow any localhost origin for development (Flutter Web uses dynamic ports)
-    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+    // Allow any localhost origin for development only (Flutter Web uses dynamic ports)
+    const isDev = process.env.NODE_ENV !== 'production';
+    if (isDev && (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:'))) {
       callback(null, true);
     }
     // Check if origin is in allowed list
@@ -78,8 +86,10 @@ app.use(cors({
 // Handle preflight requests explicitly
 app.options('*', (req, res) => {
   const origin = req.headers.origin;
-  // Allow any localhost origin for development (Flutter Web uses dynamic ports)
-  if (!origin || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:') || allowedOrigins.includes(origin)) {
+  const isDev = process.env.NODE_ENV !== 'production';
+  const localhostAllowed = isDev && (origin?.startsWith('http://localhost:') || origin?.startsWith('http://127.0.0.1:'));
+  // Allow localhost (dev only) or origins in the allowed list
+  if (!origin || localhostAllowed || allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin || '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
@@ -90,10 +100,12 @@ app.options('*', (req, res) => {
   }
 });
 
-// Standard middleware - temporarily disabled helmet for CORS debugging
-// app.use(helmet({
-//   crossOriginResourcePolicy: { policy: "cross-origin" }
-// }));
+// Security headers - helmet adds a robust set of HTTP security headers.
+// crossOriginResourcePolicy is set to cross-origin so it does not conflict with CORS.
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: false, // disabled for API server; frontend handles its own CSP
+}));
 app.use(compression());
 app.use(morgan('dev'));
 app.use(express.json());
@@ -203,6 +215,12 @@ const startServer = async () => {
   //   backupScheduler.start(backupInterval);
   //   logger.info(`[BACKUP] Automated backup scheduler started (interval: ${backupInterval} hours)`);
   // }
+
+  // Start auto invoice scheduler — generates invoices daily for customers whose
+  // billing date matches today. Runs in all environments so dev mode is testable.
+  const invoiceScheduler = getInvoiceScheduler();
+  invoiceScheduler.start();
+  logger.info('[INVOICE-CRON] Auto invoice scheduler started');
 
   server = app.listen(PORT, () => {
     logger.info(`[SERVER] Server running on port ${PORT}`);

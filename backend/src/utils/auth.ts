@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { logger } from './logger';
+import { getAdminClient } from '../database/client';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
@@ -80,26 +82,79 @@ export const generateResetToken = (): string => {
   return crypto.randomBytes(32).toString('hex');
 };
 
-// Store OTP in memory (in production, use Redis or database)
-const otpStore = new Map<string, { otp: string; expiresAt: number; email: string }>();
+// Store OTP in the database (hashed, with expiry and attempt tracking).
+// OTPs are never stored in plaintext — a SHA-256 hash is used since the OTP
+// is a short-lived 6-digit code.
+const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const OTP_MAX_ATTEMPTS = 5;
 
-export const storeOTP = (email: string, otp: string): void => {
-  const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
-  otpStore.set(email, { otp, expiresAt, email });
+export const storeOTP = async (email: string, otp: string): Promise<void> => {
+  const supabase = getAdminClient();
+  const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
+  const expiresAt = new Date(Date.now() + OTP_TTL_MS).toISOString();
+
+  // Remove any previous unconsumed OTPs for this email before inserting a new one
+  await supabase
+    .from("password_reset_otps")
+    .delete()
+    .eq("email", email)
+    .eq("consumed", false);
+
+  const { error } = await supabase
+    .from("password_reset_otps")
+    .insert({ email, otp_hash: otpHash, expires_at: expiresAt, max_attempts: OTP_MAX_ATTEMPTS });
+
+  if (error) {
+    logger.error("[OTP] Failed to store OTP:", error);
+    throw error;
+  }
 };
 
-export const verifyOTP = (email: string, otp: string): boolean => {
-  const stored = otpStore.get(email);
-  if (!stored) return false;
-  
-  if (Date.now() > stored.expiresAt) {
-    otpStore.delete(email);
+export const verifyOTP = async (email: string, otp: string): Promise<boolean> => {
+  const supabase = getAdminClient();
+  const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
+
+  // Fetch the latest unconsumed OTP for this email
+  const { data, error } = await supabase
+    .from("password_reset_otps")
+    .select("id, otp_hash, expires_at, attempts, max_attempts")
+    .eq("email", email)
+    .eq("consumed", false)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) {
+    logger.warn("[OTP] No valid OTP found for email");
     return false;
   }
-  
-  if (stored.otp !== otp) return false;
-  
-  otpStore.delete(email);
+
+  // Check expiry
+  if (new Date(data.expires_at) < new Date()) {
+    await supabase.from("password_reset_otps").delete().eq("id", data.id);
+    logger.warn("[OTP] OTP expired for email");
+    return false;
+  }
+
+  // Check attempt limit
+  if (data.attempts >= data.max_attempts) {
+    await supabase.from("password_reset_otps").delete().eq("id", data.id);
+    logger.warn(`[OTP] Max attempts (${data.max_attempts}) exceeded for email`);
+    return false;
+  }
+
+  // Verify hash
+  if (data.otp_hash !== otpHash) {
+    await supabase
+      .from("password_reset_otps")
+      .update({ attempts: data.attempts + 1 })
+      .eq("id", data.id);
+    logger.warn("[OTP] Invalid OTP provided");
+    return false;
+  }
+
+  // Success — delete the consumed OTP
+  await supabase.from("password_reset_otps").delete().eq("id", data.id);
   return true;
 };
 

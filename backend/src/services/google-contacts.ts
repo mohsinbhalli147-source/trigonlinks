@@ -100,7 +100,6 @@ class GoogleContactsService {
         throw new Error('Not authenticated with Google');
       }
 
-      // @ts-ignore - Type compatibility issue between googleapis and google-auth-library
       const peopleService = google.people({
         version: 'v1',
         auth: accessToken
@@ -144,7 +143,6 @@ class GoogleContactsService {
         throw new Error('Not authenticated with Google');
       }
 
-      // @ts-ignore - Type compatibility issue between googleapis and google-auth-library
       const peopleService = google.people({
         version: 'v1',
         auth: accessToken
@@ -193,7 +191,6 @@ class GoogleContactsService {
         throw new Error('Not authenticated with Google');
       }
 
-      // @ts-ignore - Type compatibility issue between googleapis and google-auth-library
       const peopleService = google.people({
         version: 'v1',
         auth: accessToken
@@ -228,7 +225,6 @@ class GoogleContactsService {
         return null;
       }
 
-      // @ts-ignore - Type compatibility issue between googleapis and google-auth-library
       const peopleService = google.people({
         version: 'v1',
         auth: accessToken

@@ -34,7 +34,8 @@ export default function Inventory() {
     setError('');
     const result = await inventoryApi.getAll();
     if (result.success) {
-      setItems(result.data);
+      const raw = result.data;
+      setItems(Array.isArray(raw) ? raw : (raw?.data || []));
     } else {
       setError(result.error || 'Failed to load inventory items');
     }

@@ -310,12 +310,17 @@ export const reportsApi = {
 };
 
 export const billingApi = {
-  generateMonthly: () => apiService.post('/api/billing/generate-monthly'),
+  generateMonthly: (params?: { forceAll?: boolean; area?: string }) =>
+    apiService.post('/api/billing/generate-monthly', params || {}),
+  generateAreaBills: (area: string) => apiService.post(`/api/billing/generate-area/${area}`),
   generateCustomerBill: (customerId: string, customDate?: string) => apiService.post(`/api/billing/generate/${customerId}`, { customDate }),
   processPayment: (invoiceId: string, amount: number, paymentMethod: string) => apiService.post(`/api/billing/payment/${invoiceId}`, { amount, paymentMethod }),
   markOverdue: () => apiService.post('/api/billing/mark-overdue'),
   getSummary: (customerId: string) => apiService.get(`/api/billing/summary/${customerId}`),
   getPaymentHistory: (customerId: string, params?: any) => apiService.get(`/api/billing/payments/${customerId}`, params),
+  getJobStatus: (jobId: string) => apiService.get(`/api/billing/job/${jobId}`),
+  getAreas: () => apiService.get('/api/billing/areas'),
+  triggerAutoGenerate: () => apiService.post('/api/billing/auto-generate/trigger'),
 };
 
 export const notificationsApi = {

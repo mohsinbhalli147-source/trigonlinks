@@ -3,12 +3,13 @@ import { logger } from '../utils/logger';
 import { body, validationResult, query as queryValidator } from 'express-validator';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { UsersRepository } from '../repositories/UsersRepository';
-import { getSupabaseClient } from '../database/client';
+import { getSupabaseClient, getAdminClient } from '../database/client';
 import { hashPassword } from '../utils/auth';
 import { cache } from '../utils/cache';
 
 const router = express.Router();
 const supabase = getSupabaseClient();
+const supabaseAdmin = getAdminClient();
 const usersRepo = new UsersRepository();
 
 // Apply authentication to all routes
@@ -172,7 +173,7 @@ router.post('/', authorize('admin'), [
       created_by: req.user?.uid,
     };
 
-    const { data: result, error: insertError } = await supabase
+    const { data: result, error: insertError } = await supabaseAdmin
       .from('users')
       .insert(userData)
       .select('id, uid, email, name, role, phone, address, assigned_area, is_active, email_verified, created_at, updated_at')
@@ -227,13 +228,13 @@ router.put('/:id', authorize('admin'), [
 
     // If password is being updated
     if (req.body.password) {
-      if (req.body.password.length < 6) {
-        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+      if (req.body.password.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters' });
       }
       updateData.password_hash = await hashPassword(req.body.password);
     }
 
-    const { data: result, error: updateError } = await supabase
+    const { data: result, error: updateError } = await supabaseAdmin
       .from('users')
       .update(updateData)
       .eq('id', userId)
@@ -280,10 +281,10 @@ router.delete('/:id', authorize('admin'), async (req, res) => {
       }
     }
 
-    await supabase.from('users').delete().eq('id', userId);
+    await supabaseAdmin.from('users').delete().eq('id', userId);
 
     // Delete all refresh tokens for this user
-    await supabase.from('refresh_tokens').delete().eq('user_id', userId);
+    await supabaseAdmin.from('refresh_tokens').delete().eq('user_id', userId);
 
     // Invalidate cache
     cache.delete(`user:${userId}`);
@@ -343,7 +344,7 @@ router.put('/profile/me', authenticate, [
     if (phone !== undefined) updateData.phone = phone;
     if (address !== undefined) updateData.address = address;
 
-    const { data: result, error: updateError } = await supabase
+    const { data: result, error: updateError } = await supabaseAdmin
       .from('users')
       .update(updateData)
       .eq('uid', userId)

@@ -8,6 +8,7 @@ import { CustomersRepository } from '../repositories/CustomersRepository';
 import { getSupabaseClient } from '../database/client';
 import { cache } from '../utils/cache';
 import { createNotification } from '../services/notifications';
+import { formatErrorResponse } from '../middleware/security';
 
 const router = express.Router();
 const supabase = getSupabaseClient();
@@ -177,7 +178,7 @@ router.post('/', authorize('admin'), [
     res.json(invoice);
   } catch (error) {
     logger.error('Create invoice error:', error);
-    res.status(500).json({ error: 'Failed to create invoice', details: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: 'Failed to create invoice', details: formatErrorResponse(error) });
   }
 });
 

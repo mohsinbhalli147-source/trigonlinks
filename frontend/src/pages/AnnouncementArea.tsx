@@ -20,7 +20,8 @@ export default function AnnouncementArea() {
     setError('');
     const result = await announcementsApi.getByTarget('area');
     if (result.success) {
-      setAnnouncements(result.data);
+      const raw = result.data;
+      setAnnouncements(Array.isArray(raw) ? raw : (raw?.data || []));
     } else {
       setError(result.error || 'Failed to load announcements');
     }

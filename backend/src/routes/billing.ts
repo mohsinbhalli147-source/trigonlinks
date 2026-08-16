@@ -7,16 +7,20 @@ import {
   generateCustomerBill,
   processPayment,
   markOverdueInvoices,
-  getCustomerBillingSummary
+  getCustomerBillingSummary,
+  generateMonthlyBillsBackground
 } from '../services/billing';
 import { getSupabaseClient } from '../database/client';
 import { StaffRepository } from '../repositories/StaffRepository';
 import { InvoicesRepository } from '../repositories/InvoicesRepository';
+import { CustomersRepository } from '../repositories/CustomersRepository';
 import { cache } from '../utils/cache';
+import { runInBackground, getJob } from '../services/jobStore';
 
 const router = express.Router();
 const supabase = getSupabaseClient();
 const staffRepo = new StaffRepository();
+const customersRepo = new CustomersRepository();
 const invoicesRepo = new InvoicesRepository();
 
 // Apply authentication to all routes
@@ -92,15 +96,119 @@ router.get('/payments', authorize('admin', 'staff'), async (req, res) => {
   }
 });
 
-// Generate monthly bills for all customers (admin only)
+// Generate monthly bills for all customers (admin only) — runs in background
 router.post('/generate-monthly', authorize('admin'), async (req: AuthRequest, res) => {
   try {
-    const { forceAll } = req.body;
-    const result = await generateMonthlyBills(req.user?.uid || '', forceAll);
-    res.json(result);
+    const { forceAll, area } = req.body;
+
+    // Count customers to be processed for job progress
+    const customers = await customersRepo.findAll();
+    let activeCustomers = customers.filter((c: any) => c.status === 'active');
+    if (area) {
+      activeCustomers = activeCustomers.filter((c: any) => c.area === area);
+    }
+
+    const adminUid = req.user?.uid || '';
+    const jobId = runInBackground(
+      area ? `generate-bills-area-${area}` : 'generate-bills-all',
+      activeCustomers.length,
+      (jid) => generateMonthlyBillsBackground(adminUid, !!forceAll, area, jid)
+    );
+
+    res.json({
+      success: true,
+      message: `Bill generation started in background${area ? ` for area: ${area}` : ''}. ${activeCustomers.length} customers to process.`,
+      jobId,
+      total: activeCustomers.length,
+    });
   } catch (error) {
     logger.error('Generate monthly bills error:', error);
     res.status(500).json({ success: false, message: 'Failed to generate monthly bills' });
+  }
+});
+
+// Generate bills for a specific area (admin only) — background
+router.post('/generate-area/:area', authorize('admin'), async (req: AuthRequest, res) => {
+  try {
+    const { area } = req.params;
+
+    const customers = await customersRepo.findAll();
+    const areaCustomers = customers.filter((c: any) => c.status === 'active' && c.area === area);
+
+    if (areaCustomers.length === 0) {
+      return res.json({ success: false, message: `No active customers found in area: ${area}` });
+    }
+
+    const adminUid = req.user?.uid || '';
+    const jobId = runInBackground(
+      `generate-bills-area-${area}`,
+      areaCustomers.length,
+      (jid) => generateMonthlyBillsBackground(adminUid, true, area, jid)
+    );
+
+    res.json({
+      success: true,
+      message: `Bill generation started for area: ${area}. ${areaCustomers.length} customers to process.`,
+      jobId,
+      total: areaCustomers.length,
+      area,
+    });
+  } catch (error) {
+    logger.error('Generate area bills error:', error);
+    res.status(500).json({ success: false, message: 'Failed to generate area bills' });
+  }
+});
+
+// Check status of a background bill generation job
+router.get('/job/:jobId', authorize('admin', 'staff'), async (req, res) => {
+  const job = getJob(req.params.jobId);
+  if (!job) {
+    return res.status(404).json({ success: false, message: 'Job not found' });
+  }
+  res.json({
+    success: true,
+    job: {
+      id: job.id,
+      type: job.type,
+      status: job.status,
+      progress: job.progress,
+      result: job.result,
+      error: job.error,
+      startedAt: job.startedAt,
+      completedAt: job.completedAt,
+    },
+  });
+});
+
+// Get list of distinct areas (for the area-wise generation UI)
+router.get('/areas', authorize('admin', 'staff'), async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('area')
+      .not('area', 'is', null)
+      .neq('area', '');
+
+    if (error) throw error;
+
+    const areas = [...new Set((data || []).map((r: any) => r.area).filter(Boolean))].sort();
+    res.json({ success: true, data: areas });
+  } catch (error) {
+    logger.error('Get areas error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch areas' });
+  }
+});
+
+// Manually trigger the auto-invoice cron run (admin only)
+router.post('/auto-generate/trigger', authorize('admin'), async (req: AuthRequest, res) => {
+  try {
+    const { getInvoiceScheduler } = await import('../services/invoice-scheduler');
+    const scheduler = getInvoiceScheduler();
+    const result = await scheduler.runNow();
+    res.json({ success: true, message: 'Auto invoice generation triggered', ...result });
+  } catch (error) {
+    logger.error('Trigger auto-generate error:', error);
+    res.status(500).json({ success: false, message: 'Failed to trigger auto generation' });
   }
 });
 

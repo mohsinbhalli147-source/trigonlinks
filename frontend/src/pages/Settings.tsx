@@ -63,7 +63,7 @@ export default function Settings() {
                   <label className="block text-sm font-medium text-[#8996AD] mb-2">Full Name</label>
                   <input
                     type="text"
-                    defaultValue="System Admin"
+                    defaultValue="" placeholder="Enter your name"
                     className="w-full px-4 py-2 bg-[#1B2540] border border-[#232D45] rounded-lg text-[#EAF0FB] focus:outline-none focus:border-[#14E8B4]"
                   />
                 </div>
@@ -71,7 +71,7 @@ export default function Settings() {
                   <label className="block text-sm font-medium text-[#8996AD] mb-2">Email</label>
                   <input
                     type="email"
-                    defaultValue="admin@trigonlinks.com"
+                    defaultValue="" placeholder="Enter your email"
                     className="w-full px-4 py-2 bg-[#1B2540] border border-[#232D45] rounded-lg text-[#EAF0FB] focus:outline-none focus:border-[#14E8B4]"
                   />
                 </div>
@@ -79,7 +79,7 @@ export default function Settings() {
                   <label className="block text-sm font-medium text-[#8996AD] mb-2">Mobile</label>
                   <input
                     type="tel"
-                    defaultValue="0300-1234567"
+                    defaultValue="" placeholder="Enter your mobile"
                     className="w-full px-4 py-2 bg-[#1B2540] border border-[#232D45] rounded-lg text-[#EAF0FB] focus:outline-none focus:border-[#14E8B4]"
                   />
                 </div>
@@ -87,7 +87,7 @@ export default function Settings() {
                   <label className="block text-sm font-medium text-[#8996AD] mb-2">Role</label>
                   <input
                     type="text"
-                    defaultValue="Administrator"
+                    defaultValue="" placeholder="Enter your role"
                     disabled
                     className="w-full px-4 py-2 bg-[#0A0F1C] border border-[#232D45] rounded-lg text-[#5C6B85] focus:outline-none"
                   />

@@ -19,7 +19,8 @@ export default function AnnouncementCustomer() {
     setError('');
     const result = await announcementsApi.getByTarget('customer');
     if (result.success) {
-      setAnnouncements(result.data);
+      const raw = result.data;
+      setAnnouncements(Array.isArray(raw) ? raw : (raw?.data || []));
     } else {
       setError(result.error || 'Failed to load announcements');
     }

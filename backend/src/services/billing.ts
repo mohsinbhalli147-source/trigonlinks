@@ -76,14 +76,19 @@ export const generateInvoiceNumber = async (): Promise<string> => {
 };
 
 // Generate monthly bills for all active customers
-export const generateMonthlyBills = async (adminUserId: string, forceAll: boolean = false): Promise<BillGenerationResult> => {
+export const generateMonthlyBills = async (adminUserId: string, forceAll: boolean = false, area?: string): Promise<BillGenerationResult> => {
   try {
     const now = new Date();
     const currentDay = now.getDate();
 
     // Get all active customers
     const customers = await customersRepo.findAll();
-    const activeCustomers = customers.filter((c: any) => c.status === 'active');
+    let activeCustomers = customers.filter((c: any) => c.status === 'active');
+
+    // Filter by area if specified
+    if (area) {
+      activeCustomers = activeCustomers.filter((c: any) => c.area === area);
+    }
 
     let billsGenerated = 0;
     const errors: string[] = [];
@@ -477,6 +482,154 @@ export const processPayment = async (
     return {
       success: false,
       message: 'Failed to process payment'
+    };
+  }
+};
+
+// Generate monthly bills in the background with progress tracking
+export const generateMonthlyBillsBackground = async (
+  adminUserId: string,
+  forceAll: boolean,
+  area: string | undefined,
+  jobId: string,
+  onProgress?: (current: number, total: number) => void
+): Promise<BillGenerationResult> => {
+  const { updateJobProgress } = await import('./jobStore');
+  try {
+    const now = new Date();
+    const currentDay = now.getDate();
+
+    const customers = await customersRepo.findAll();
+    let activeCustomers = customers.filter((c: any) => c.status === 'active');
+
+    if (area) {
+      activeCustomers = activeCustomers.filter((c: any) => c.area === area);
+    }
+
+    let billsGenerated = 0;
+    const errors: string[] = [];
+    const total = activeCustomers.length;
+
+    for (let i = 0; i < activeCustomers.length; i++) {
+      const customer = activeCustomers[i] as any;
+      try {
+        const billingDate = customer.billing_date || customer.install_date;
+        if (!billingDate) {
+          errors.push(`Customer ${customer.name} has no billing date - using day 1`);
+          customer.billing_date = 1;
+        }
+
+        const billingDateObj = new Date(billingDate);
+        const billingDay = billingDateObj.getDate();
+
+        if (!forceAll && currentDay !== billingDay) {
+          updateJobProgress(jobId, i + 1);
+          if (onProgress) onProgress(i + 1, total);
+          continue;
+        }
+
+        const monthStart = startOfMonth(now).getTime();
+        const monthEnd = endOfMonth(now).getTime();
+
+        const { data: existingBill } = await supabase
+          .from('invoices')
+          .select('id')
+          .eq('customer_id', customer.id)
+          .eq('billing_period_start', monthStart)
+          .eq('billing_period_end', monthEnd)
+          .limit(1);
+
+        if (existingBill && existingBill.length > 0) {
+          updateJobProgress(jobId, i + 1);
+          if (onProgress) onProgress(i + 1, total);
+          continue;
+        }
+
+        let packagePrice = 0;
+        let packageName = 'Unknown';
+        if (customer.package) {
+          const pkg = await packagesRepo.findByName(customer.package);
+          if (pkg) {
+            packagePrice = pkg.price || 0;
+            packageName = pkg.name || 'Unknown';
+          }
+        } else if (customer.fee) {
+          packagePrice = Number(customer.fee);
+          packageName = 'Custom Package';
+        }
+
+        let totalAmount = packagePrice;
+        const iptvCharges = customer.iptv_enabled ? (customer.iptv_monthly_charges || 0) : 0;
+        totalAmount += iptvCharges;
+        const liveIpCharges = customer.live_ip_enabled ? (customer.live_ip_monthly_fee || 0) : 0;
+        totalAmount += liveIpCharges;
+        const isFirstMonth = customer.install_date && isSameMonth(new Date(customer.install_date), now);
+        const installFee = isFirstMonth && customer.install_fee && !customer.install_fee_paid ? Number(customer.install_fee) : 0;
+        totalAmount += installFee;
+        const previousBalance = customer.previous_balance || 0;
+        totalAmount += previousBalance;
+
+        const invoiceNumber = await generateInvoiceNumber();
+        const dueDate = addMonths(now, 1).getTime();
+
+        const invoiceData: InvoiceData = {
+          customer_id: customer.id,
+          customer_name: customer.name,
+          customer_phone: customer.mobile,
+          invoice_number: invoiceNumber,
+          amount: packagePrice,
+          due_date: dueDate,
+          billing_period_start: monthStart,
+          billing_period_end: monthEnd,
+          status: 'unpaid',
+          paid_amount: 0,
+          package: packageName,
+          package_price: packagePrice,
+          install_fee: installFee > 0 ? installFee : undefined,
+          previous_balance: previousBalance > 0 ? previousBalance : undefined,
+          total_amount: totalAmount,
+          notes: isFirstMonth ? 'Includes installation fee' : undefined,
+          created_at: Date.now(),
+          created_by: adminUserId,
+          iptv_charges: iptvCharges > 0 ? iptvCharges : undefined,
+          live_ip_charges: liveIpCharges > 0 ? liveIpCharges : undefined,
+          installation_charges: installFee > 0 ? installFee : undefined,
+          previous_due_amount: previousBalance > 0 ? previousBalance : undefined,
+          total_payable: totalAmount,
+          remaining_balance: totalAmount
+        };
+
+        await invoicesRepo.createInvoice(invoiceData);
+
+        if (previousBalance > 0) {
+          await supabase
+            .from('customers')
+            .update({ previous_balance: 0 })
+            .eq('id', customer.id);
+        }
+
+        billsGenerated++;
+      } catch (err) {
+        logger.error(`Error generating bill for customer ${customer.name}:`, err);
+        errors.push(`Failed to generate bill for ${customer.name}: ${err}`);
+      }
+
+      updateJobProgress(jobId, i + 1);
+      if (onProgress) onProgress(i + 1, total);
+    }
+
+    return {
+      success: true,
+      message: `Bill generation completed. ${billsGenerated} bills generated.`,
+      billsGenerated,
+      errors: errors.length > 0 ? errors : undefined
+    };
+  } catch (error) {
+    logger.error('Error in generateMonthlyBillsBackground:', error);
+    return {
+      success: false,
+      message: 'Failed to generate monthly bills',
+      errors: [String(error)]
     };
   }
 };

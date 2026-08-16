@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Eye, DollarSign, AlertCircle, Clock, User, Package, Calendar, CreditCard, Send } from 'lucide-react';
 import { invoicesApi } from '../services/api';
 import { toast } from '../components/Toast';
+import { useServerPagination } from '../hooks/useServerPagination';
+import { Pagination } from '../components/Pagination';
 
 interface UnpaidCustomer {
   id: string;
@@ -23,55 +25,44 @@ export default function BillingUnpaid() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
-  const [customers, setCustomers] = useState<UnpaidCustomer[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadCustomers();
+  const fetchInvoices = useCallback(({ page, limit }: { page: number; limit: number }) => {
+    return invoicesApi.getAll({ status: 'unpaid', page, limit });
   }, []);
 
-  const loadCustomers = async () => {
-    setLoading(true);
-    setError('');
-    // Use server-side status filtering - fetch unpaid and overdue separately using aggregation-friendly queries
-    const [unpaidResult, overdueResult] = await Promise.all([
-      invoicesApi.getAll({ status: 'unpaid', limit: 100 }),
-      invoicesApi.getAll({ status: 'overdue', limit: 100 }),
-    ]);
+  const {
+    data: rawInvoices,
+    loading,
+    page,
+    limit,
+    total,
+    totalPages,
+    setPage,
+    setLimit,
+    refresh,
+  } = useServerPagination<any>(fetchInvoices, { limit: 50 });
 
-    const unpaidList = unpaidResult.data?.data || [];
-    const overdueList = overdueResult.data?.data || [];
-    const allInvoices = [...unpaidList, ...overdueList];
-
-    const mapped: UnpaidCustomer[] = allInvoices.map((inv: any) => {
-      const dueDateMs = inv.dueDate ? new Date(inv.dueDate).getTime() : 0;
-      const today = Date.now();
-      const overdueDays = dueDateMs ? Math.floor((today - dueDateMs) / 86400000) : 0;
-      const status: UnpaidCustomer['status'] = inv.status === 'overdue' || overdueDays > 0 ? 'overdue' : 'unpaid';
-      return {
-        id: inv.id,
-        name: inv.customerName || '',
-        username: inv.username || inv.customerUsername || '',
-        cnic: inv.cnic || inv.customerCnic || '',
-        phone: inv.customerPhone || inv.mobile || '',
-        package: inv.package || '',
-        monthlyFee: inv.amount || 0,
-        dueAmount: inv.amount || 0,
-        dueDate: inv.dueDate || '',
-        overdueDays: overdueDays > 0 ? overdueDays : 0,
-        status,
-        lastPaymentDate: inv.lastPaymentDate || '',
-      };
-    });
-
-    if (unpaidResult.success || overdueResult.success) {
-      setCustomers(mapped);
-    } else {
-      setError('Failed to load unpaid customers');
-    }
-    setLoading(false);
-  };
+  const customers: UnpaidCustomer[] = (rawInvoices || []).map((inv: any) => {
+    const dueDateMs = inv.dueDate ? new Date(inv.dueDate).getTime() : 0;
+    const today = Date.now();
+    const overdueDays = dueDateMs ? Math.floor((today - dueDateMs) / 86400000) : 0;
+    const status: UnpaidCustomer['status'] = inv.status === 'overdue' || overdueDays > 0 ? 'overdue' : 'unpaid';
+    return {
+      id: inv.id,
+      name: inv.customerName || '',
+      username: inv.username || inv.customerUsername || '',
+      cnic: inv.cnic || inv.customerCnic || '',
+      phone: inv.customerPhone || inv.mobile || '',
+      package: inv.package || '',
+      monthlyFee: inv.amount || 0,
+      dueAmount: inv.amount || 0,
+      dueDate: inv.dueDate || '',
+      overdueDays: overdueDays > 0 ? overdueDays : 0,
+      status,
+      lastPaymentDate: inv.lastPaymentDate || '',
+    };
+  });
 
   const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -285,6 +276,15 @@ export default function BillingUnpaid() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          limit={limit}
+          onPageChange={setPage}
+          onLimitChange={(l) => { setLimit(l); setPage(1); }}
+          itemName="invoices"
+        />
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import { ComplaintsRepository } from '../repositories/ComplaintsRepository';
 import { CustomersRepository } from '../repositories/CustomersRepository';
 import { getSupabaseClient } from '../database/client';
 import { createNotification } from '../services/notifications';
+import { formatErrorResponse } from '../middleware/security';
 
 const router = express.Router();
 const complaintsRepo = new ComplaintsRepository();
@@ -57,7 +58,7 @@ router.get('/', authorize('admin', 'staff', 'customer'), async (req: AuthRequest
     res.json(result);
   } catch (error: any) {
     logger.error('Get complaints error:', error);
-    res.status(500).json({ error: 'Failed to fetch complaints', details: error.message });
+    res.status(500).json({ error: 'Failed to fetch complaints', details: formatErrorResponse(error) });
   }
 });
 
