@@ -46,7 +46,6 @@ jobs:
           password: ${{ github.event.inputs.ftp_password || secrets.HOSTINGER_FTP_PASSWORD }}
           local-dir: backend/deploy-package/
           server-dir: /public_html/
-          security: strict
           exclude: |
             **/node_modules/**
             **/.git/**
