@@ -5,6 +5,7 @@ import { connectionsApi } from '../services/api';
 
 interface ApprovedConnection {
   id: string;
+  customerId?: string | null;
   customerName: string;
   fatherName: string;
   phone: string;
@@ -34,6 +35,7 @@ export default function ConnectionsApproved() {
   const [connections, setConnections] = useState<ApprovedConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [viewError, setViewError] = useState('');
 
   useEffect(() => {
     loadConnections();
@@ -68,8 +70,13 @@ export default function ConnectionsApproved() {
     }
   };
 
-  const handleView = (id: string) => {
-    navigate(`/customers/profile/${id}`);
+  const handleView = (conn: ApprovedConnection) => {
+    if (!conn.customerId) {
+      setViewError('No linked customer record for this connection. The customer may have been created before the linking feature was added.');
+      window.setTimeout(() => setViewError(''), 6000);
+      return;
+    }
+    navigate(`/customers/profile/${conn.customerId}`);
   };
 
   if (loading) {
@@ -90,6 +97,12 @@ export default function ConnectionsApproved() {
 
   return (
     <div className="space-y-6">
+      {viewError && (
+        <div className="flex items-center justify-between bg-[#F6B93B]/10 border border-[#F6B93B]/30 rounded-lg px-4 py-3">
+          <p className="text-[#F6B93B] text-sm">{viewError}</p>
+          <button onClick={() => setViewError('')} className="text-[#F6B93B] hover:text-[#EAF0FB] text-lg leading-none">&times;</button>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-[#EAF0FB]">Approved Connections</h2>
         <div className="flex items-center gap-4">
@@ -215,7 +228,7 @@ export default function ConnectionsApproved() {
 
             <div className="flex items-center justify-between pt-4 border-t border-[#232D45]">
               <button
-                onClick={() => handleView(connection.id)}
+                onClick={() => handleView(connection)}
                 className="flex items-center gap-2 px-4 py-2 bg-[#14E8B4] text-[#04231B] font-semibold rounded-lg hover:bg-[#20F0C0] transition-colors"
               >
                 <Eye className="w-4 h-4" />
