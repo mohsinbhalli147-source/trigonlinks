@@ -57,7 +57,7 @@ export function useServerPagination<T>(
     } finally {
       setLoading(false);
     }
-  }, [page, limit, refreshKey]);
+  }, [page, limit, refreshKey, fetchFn]);
 
   useEffect(() => {
     fetchData();

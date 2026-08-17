@@ -45,33 +45,69 @@ export default function CustomersAdd() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Explicit validation with clear messages (in addition to HTML5 required)
+    const missing: string[] = [];
+    if (!formData.name.trim()) missing.push('Name');
+    if (!formData.username.trim()) missing.push('Username');
+    if (!formData.mobile.trim()) missing.push('Mobile');
+    if (!formData.cnic.trim()) missing.push('CNIC');
+    if (!formData.address.trim()) missing.push('Address');
+    if (!formData.area.trim()) missing.push('Area');
+    if (!formData.package.trim()) missing.push('Package');
+    if (!formData.install_date) missing.push('Installation Date');
+    if (!formData.billing_date) missing.push('Billing Date');
+    if (!formData.fee || Number(formData.fee) <= 0) missing.push('Monthly Fee');
+    if (missing.length > 0) {
+      setError(`Please fill in all required fields: ${missing.join(', ')}`);
+      // Scroll to top so the user sees the error
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // CNIC format check (13 digits, no dashes required but normalize)
+    const cnicDigits = formData.cnic.replace(/\D/g, '');
+    if (cnicDigits.length !== 13) {
+      setError('CNIC must be 13 digits.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // Mobile format check (at least 10 digits)
+    const mobileDigits = formData.mobile.replace(/\D/g, '');
+    if (mobileDigits.length < 10) {
+      setError('Mobile number must be at least 10 digits.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
       const customerData = {
-        name: formData.name,
-        fatherName: formData.fatherName,
-        mobile: formData.mobile,
-        cnic: formData.cnic,
-        email: formData.email,
-        address: formData.address,
+        name: formData.name.trim(),
+        fatherName: formData.fatherName.trim(),
+        mobile: mobileDigits,
+        cnic: cnicDigits,
+        email: formData.email.trim(),
+        address: formData.address.trim(),
         area: formData.area,
         package: formData.package,
         fee: Number(formData.fee),
         install_date: formData.install_date ? new Date(formData.install_date).getTime() : undefined,
         billing_date: formData.billing_date ? Number(formData.billing_date) : undefined,
-        username: formData.username,
-        emergencyContact: formData.emergencyContact,
-        notes: formData.notes,
+        username: formData.username.trim(),
+        emergencyContact: formData.emergencyContact.trim(),
+        notes: formData.notes.trim(),
         status: formData.status as 'active' | 'suspended' | 'pending',
         iptv_enabled: formData.iptv_enabled,
-        iptv_box_number: formData.iptv_box_number,
+        iptv_box_number: formData.iptv_box_number.trim(),
         iptv_box_price: formData.iptv_box_price ? Number(formData.iptv_box_price) : undefined,
         iptv_installation_charges: formData.iptv_installation_charges ? Number(formData.iptv_installation_charges) : undefined,
         iptv_monthly_charges: formData.iptv_monthly_charges ? Number(formData.iptv_monthly_charges) : undefined,
         live_ip_enabled: formData.live_ip_enabled,
-        live_ip_address: formData.live_ip_address,
+        live_ip_address: formData.live_ip_address.trim(),
         live_ip_monthly_fee: formData.live_ip_monthly_fee ? Number(formData.live_ip_monthly_fee) : undefined,
         live_ip_installation_fee: formData.live_ip_installation_fee ? Number(formData.live_ip_installation_fee) : undefined
       };

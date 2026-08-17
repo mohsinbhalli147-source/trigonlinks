@@ -117,21 +117,33 @@ router.post('/', authorize('admin'), [
     const customerData: any = {
       uid: customerDataSnake.uid || crypto.randomUUID(),
       name: customerDataSnake.name,
+      father_name: customerDataSnake.father_name,
+      username: customerDataSnake.username,
       mobile: customerDataSnake.mobile,
+      cnic: customerDataSnake.cnic,
+      email: customerDataSnake.email,
       address: customerDataSnake.address,
       area: customerDataSnake.area,
       status: customerDataSnake.status || 'active',
       package: customerDataSnake.package,
       fee: Number(customerDataSnake.fee),
       install_date: customerDataSnake.install_date,
+      billing_date: customerDataSnake.billing_date,
+      emergency_contact: customerDataSnake.emergency_contact,
+      notes: customerDataSnake.notes,
       iptv_enabled: customerDataSnake.iptv_enabled || false,
-      live_ip_enabled: customerDataSnake.live_ip_enabled || false,
+      iptv_box_number: customerDataSnake.iptv_box_number,
+      iptv_box_price: customerDataSnake.iptv_box_price ? Number(customerDataSnake.iptv_box_price) : 0,
+      iptv_installation_charges: customerDataSnake.iptv_installation_charges ? Number(customerDataSnake.iptv_installation_charges) : 0,
       iptv_monthly_charges: customerDataSnake.iptv_monthly_charges || 0,
-      live_ip_monthly_fee: customerDataSnake.live_ip_monthly_fee || 0,
+      live_ip_enabled: customerDataSnake.live_ip_enabled || false,
+      live_ip_address: customerDataSnake.live_ip_address,
+      live_ip_monthly_fee: customerDataSnake.live_ip_monthly_fee ? Number(customerDataSnake.live_ip_monthly_fee) : 0,
+      live_ip_installation_fee: customerDataSnake.live_ip_installation_fee ? Number(customerDataSnake.live_ip_installation_fee) : 0,
       created_at: Date.now(),
       created_by: req.user?.uid,
     };
-    
+
     const customer = await customersRepo.createCustomer(customerData);
     
     // Convert back to camelCase for frontend response

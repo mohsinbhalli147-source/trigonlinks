@@ -141,11 +141,11 @@ export default function CustomersActive() {
                   <td className="py-3 px-2 text-sm text-[#EAF0FB]">{customer.package}</td>
                   <td className="py-3 px-2 text-sm text-[#8996AD]">{customer.area}</td>
                   <td className="py-3 px-2 text-sm text-[#EAF0FB]">Rs. {customer.fee}</td>
-                  <td className="py-3 px-2 text-sm text-[#8996AD]">{customer.iptv_enabled ? `Rs. ${customer.iptv_monthly_charges}` : 'N/A'}</td>
-                  <td className="py-3 px-2 text-sm text-[#8996AD]">{customer.live_ip_enabled ? customer.live_ip_address : 'N/A'}</td>
+                  <td className="py-3 px-2 text-sm text-[#8996AD]">{customer.iptv_enabled ? `Rs. ${customer.iptv_monthly_charges || 0}` : 'N/A'}</td>
+                  <td className="py-3 px-2 text-sm text-[#8996AD]">{customer.live_ip_enabled ? (customer.live_ip_address || `Rs. ${customer.live_ip_monthly_fee || 0}`) : 'N/A'}</td>
                   <td className="py-3 px-2 text-sm text-[#F5514B]">Rs. {customer.previous_balance || 0}</td>
                   <td className="py-3 px-2 text-sm text-[#8996AD]">{customer.install_date ? new Date(customer.install_date).toLocaleDateString() : 'N/A'}</td>
-                  <td className="py-3 px-2 text-sm text-[#8996AD]">{customer.billing_date ? new Date(customer.billing_date).toLocaleDateString() : 'N/A'}</td>
+                  <td className="py-3 px-2 text-sm text-[#8996AD]">{customer.billing_date ? `Day ${customer.billing_date}` : 'N/A'}</td>
                   <td className="py-3 px-2 text-sm text-[#8996AD] max-w-[200px] truncate">{customer.address || 'N/A'}</td>
                   <td className="py-3 px-4 text-right">
                     <div className="flex items-center justify-end gap-2">

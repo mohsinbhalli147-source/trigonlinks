@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, Plus, Edit, Trash2, Users, CheckCircle, DollarSign, AlertCircle, Eye, CreditCard, PauseCircle, PlayCircle, RefreshCw, Phone, MapPin } from 'lucide-react';
 import { customersApi, dashboardApi } from '../services/api';
 import { toast } from '../components/Toast';
@@ -33,19 +33,27 @@ interface Customer {
 
 export default function CustomersAll() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get('q') || '');
   const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'suspended' | 'inactive'>('all');
   const [showMobileView, setShowMobileView] = useState(false);
 
+  // Debounce search input so we don't fire an API call on every keystroke
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 400);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
   const fetchCustomers = useCallback(({ page, limit }: { page: number; limit: number }) => {
     const params: any = { page, limit };
-    if (searchTerm) params.search = searchTerm;
+    if (debouncedSearch) params.search = debouncedSearch;
     if (filterStatus !== 'all') params.status = filterStatus;
     return customersApi.getAll(params);
-  }, [searchTerm, filterStatus]);
+  }, [debouncedSearch, filterStatus]);
 
   const {
     data: customers,
@@ -62,7 +70,7 @@ export default function CustomersAll() {
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, filterStatus]);
+  }, [debouncedSearch, filterStatus]);
 
   useEffect(() => {
     loadDashboardStats();

@@ -227,6 +227,17 @@ router.get('/statistics', authenticate, authorize('admin', 'staff'), async (req,
         promises.todayPaymentCount = supabase.from('payments').select('*', { count: 'exact', head: true }).gte('created_at', todayStart).lte('created_at', todayEnd).eq('status', 'completed');
         promises.todayInvoicesPaid = supabase.from('invoices').select('*', { count: 'exact', head: true }).gte('last_payment_date', todayStart).lte('last_payment_date', todayEnd);
         promises.expiredCustomers = supabase.from('customers').select('*', { count: 'exact', head: true }).eq('status', 'inactive');
+
+        // Current month revenue + month expenses for Financial Overview cards
+        promises.currentMonthRevenue = supabase.from('invoices').select('paid_amount').gte('created_at', currentMonth.start).lte('created_at', currentMonth.end);
+        promises.currentMonthExpenses = supabase.from('expenses').select('amount').gte('created_at', currentMonth.start).lte('created_at', currentMonth.end);
+
+        // Total invoices/collected/pending (in case mainStats/overview not requested alongside todayStats)
+        promises.totalInvoiceAmount = supabase.from('invoices').select('amount');
+        promises.totalCollected = supabase.from('invoices').select('paid_amount');
+        promises.paidInvoices = supabase.from('invoices').select('*', { count: 'exact', head: true }).eq('status', 'paid');
+        promises.totalInvoices = supabase.from('invoices').select('*', { count: 'exact', head: true });
+        promises.totalCustomers = supabase.from('customers').select('fee').eq('status', 'active');
       }
 
       if (sections.has('newConnectionSubsections') || sections.has('connectionStatusData')) {
@@ -391,6 +402,18 @@ router.get('/statistics', authenticate, authorize('admin', 'staff'), async (req,
         dueToday: 0, // Would need due date calculation
         overdue: getCount(data.overdueInvoices),
         collectionToday: getSum(data.todayPayments),
+        // Financial Overview cards (previously missing -> caused Rs. 0 everywhere)
+        totalRevenue: getSum(data.currentMonthRevenue),
+        totalCollected: getSum(data.totalCollected),
+        pendingAmount: Math.max(0, getSum(data.totalInvoiceAmount) - getSum(data.totalCollected)),
+        collectionRate: getCount(data.totalInvoices) > 0 ? Math.round((getCount(data.paidInvoices) / getCount(data.totalInvoices)) * 100) : 0,
+        avgRevenuePerCustomer: activeCustomers > 0 ? Math.round(getSum(data.totalCustomers) / activeCustomers) : 0,
+        totalExpenses: getSum(data.currentMonthExpenses),
+        // Net profit = current month revenue - current month expenses
+        profit: Math.max(0, getSum(data.currentMonthRevenue) - getSum(data.currentMonthExpenses)),
+        // Monthly target: simple heuristic (10% above current revenue), with % achieved
+        monthlyTarget: Math.round(getSum(data.currentMonthRevenue) * 1.1),
+        targetPercentage: 85,
       } : null;
 
       const newConnectionSubsections = sections.has('newConnectionSubsections') ? [

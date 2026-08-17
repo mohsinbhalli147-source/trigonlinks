@@ -186,6 +186,11 @@ export default function Dashboard() {
                 placeholder="Search customers, bills, areas..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && searchQuery.trim()) {
+                    navigate(`/customers/all?q=${encodeURIComponent(searchQuery.trim())}`);
+                  }
+                }}
                 className="w-64 pl-10 pr-4 py-2 bg-[#1F2937] border border-[#374151] rounded-lg text-[#EAF0FB] placeholder-[#6B7280] focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all"
               />
             </div>

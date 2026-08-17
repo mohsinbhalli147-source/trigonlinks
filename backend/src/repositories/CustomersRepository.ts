@@ -144,9 +144,12 @@ export class CustomersRepository extends BaseRepository<Customer> {
       query = query.eq('area', area);
     }
     if (search) {
-      // Supabase doesn't support OR with ILIKE directly, so we'll use a simple filter
-      // For production, consider using full-text search or RPC functions
-      query = query.ilike('name', `%${search}%`);
+      // Multi-column search across name, username, mobile, cnic, address, area
+      // Supabase PostgREST filter: use OR with ilike on each relevant column
+      const term = `%${search}%`;
+      query = query.or(
+        `name.ilike.${term},username.ilike.${term},mobile.ilike.${term},cnic.ilike.${term},address.ilike.${term},area.ilike.${term}`
+      );
     }
 
     const { data, count, error } = await query;
