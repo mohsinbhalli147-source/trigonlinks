@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 
 dotenv.config();
+dotenv.config({ path: 'trigonlinks-backend.env' });
 import { 
   generalRateLimiter, 
   authRateLimiter, 

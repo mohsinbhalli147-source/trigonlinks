@@ -13,7 +13,9 @@ router.use(authenticate);
 
 // Get all new customers (admin and staff can view)
 // New Customers = customers with 'inactive' status created via connection requests
-router.get('/', authorize('admin', 'staff'), async (req, res) => {
+// Registered for both '/' and '/all' for backward compatibility with older
+// frontend builds that call /api/new-customers/all.
+const listNewCustomers = async (req: any, res: any) => {
   try {
     const {
       page = '1',
@@ -85,11 +87,14 @@ router.get('/', authorize('admin', 'staff'), async (req, res) => {
         totalPages: Math.ceil((count || 0) / limitNum)
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Get new customers error:', error);
-    res.status(500).json({ error: 'Failed to fetch new customers' });
+    res.status(500).json({ error: 'Failed to fetch new customers', debug: error?.message || error?.code || String(error) });
   }
-});
+};
+
+router.get('/', authorize('admin', 'staff'), listNewCustomers);
+router.get('/all', authorize('admin', 'staff'), listNewCustomers);
 
 // Create new customer (admin only)
 router.post('/', authorize('admin'), [
@@ -361,15 +366,74 @@ router.put('/:id', authorize('admin'), async (req: AuthRequest, res) => {
 });
 
 // Delete new customer (admin only)
+// The list endpoint exposes id = connection.id || customer.id. When a customer
+// has a linked connection, the row id is the connection id; otherwise it falls
+// back to the customer id. Deleting must remove BOTH the connection (matched by
+// connection id OR by customer_id) and the underlying customer record, so that
+// no orphaned customer remains. We resolve the customer id from either the
+// connection's customer_id (when deleting by connection id) or the id itself.
 router.delete('/:id', authorize('admin'), async (req, res) => {
   try {
-    const { error } = await supabase
-      .from('connections')
-      .delete()
-      .eq('id', req.params.id);
+    const id = req.params.id;
 
-    if (error) throw error;
-    
+    // Try to find a connection by id (the common case: row id = connection id).
+    const { data: conn, error: findErr } = await supabase
+      .from('connections')
+      .select('id, customer_id')
+      .eq('id', id)
+      .limit(1);
+
+    if (findErr) throw findErr;
+
+    let connectionId: string | null = null;
+    let customerId: string | null = null;
+
+    if (conn && conn.length > 0) {
+      connectionId = conn[0].id;
+      customerId = conn[0].customer_id;
+    }
+
+    // If no connection matched by id, the row id may be a customer id (orphan:
+    // connection already removed). Resolve any remaining connection by
+    // customer_id and treat the id itself as the customer id.
+    if (!connectionId) {
+      customerId = id;
+      const { data: connByCust } = await supabase
+        .from('connections')
+        .select('id, customer_id')
+        .eq('customer_id', id)
+        .limit(1);
+      if (connByCust && connByCust.length > 0) {
+        connectionId = connByCust[0].id;
+        customerId = connByCust[0].customer_id || id;
+      }
+    }
+
+    // Delete dependent rows first (connection expenses), then the connection,
+    // then the customer. Each is best-effort: a missing relation should not
+    // abort the cleanup of the others.
+    if (connectionId) {
+      const { error: expErr } = await supabase
+        .from('connection_expenses')
+        .delete()
+        .eq('connection_id', connectionId);
+      if (expErr) logger.error('Delete new customer expenses error:', expErr);
+
+      const { error: connErr } = await supabase
+        .from('connections')
+        .delete()
+        .eq('id', connectionId);
+      if (connErr) throw connErr;
+    }
+
+    if (customerId) {
+      const { error: custErr } = await supabase
+        .from('customers')
+        .delete()
+        .eq('id', customerId);
+      if (custErr) logger.error('Delete new customer (customer row) error:', custErr);
+    }
+
     res.json({ message: 'New customer deleted successfully' });
   } catch (error) {
     logger.error('Delete new customer error:', error);

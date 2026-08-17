@@ -5,23 +5,27 @@ import { logger } from '../utils/logger';
 import dotenv from 'dotenv';
 
 dotenv.config();
+// Hostinger Node.js stores env in <app>.env (trigonlinks-backend.env), not .env.
+// Load it explicitly so the app works locally (.env) and on Hostinger.
+// dotenv does not overwrite vars already in process.env, so chaining is safe.
+dotenv.config({ path: 'trigonlinks-backend.env' });
 
 // Database type selection
 const DB_TYPE = process.env.DB_TYPE || 'supabase'; // 'supabase' or 'cockroachdb'
 
-// Supabase client using the ANON key. This respects Row Level Security (RLS)
-// policies and is the default client used across the application.
+// Default Supabase client used across the application. Uses the SERVICE ROLE
+// key because this backend enforces authorization in the Express/JWT layer
+// (per-route role guards), NOT via Postgres Row Level Security. The DB RLS
+// policies are non-functional for this app (self-referential recursion + GUCs
+// that are never set), so using the anon key would break every query. This
+// matches the original working deployment, which used a single service_role
+// client. getAdminClient() returns the same privileged client.
 const supabase = createClient(
   process.env.SUPABASE_URL!,
-  process.env.SUPABASE_ANON_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY!
 );
 
-// Supabase admin client using the SERVICE ROLE key. This BYPASSES RLS and must
-// only be used for privileged operations (user management, password resets,
-// migrations) that explicitly require elevated access.
-const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY
-  ? createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-  : supabase;
+const supabaseAdmin = supabase;
 
 // CockroachDB connection pool
 let cockroachPool: Pool;
