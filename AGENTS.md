@@ -97,3 +97,35 @@
 ## Test Suite
 - `test_crud_suite.py` — comprehensive CRUD tests (auth, customers, invoices, payments, staff, inventory, RBAC, dashboard). Run: `python3 test_crud_suite.py`
 - 27/31 pass against production. 4 failures are new endpoints/migration pending production deploy.
+
+## Production Backend (Hostinger) — deployment facts
+- Backend URL: `https://lightgreen-rhinoceros-358548.hostingersite.com` (Phusion Passenger, port 5000)
+- App root on server: `/home/u341753014/domains/lightgreen-rhinoceros-358548.hostingersite.com/hbuilds/current/nodejs/`
+  (NOT `public_html/`. `hbuilds/current` is a symlink to the active build version under `hbuilds/versions/<id>/nodejs`.)
+- Startup file: `dist/index.js` (compiled from TS via `npx tsc`). Passenger runs it with alt-nodejs22.
+- Env keys live in BOTH `.env` AND `trigonlinks-backend.env` in the app root. `index.ts` loads both:
+  `dotenv.config(); dotenv.config({ path: 'trigonlinks-backend.env' });`
+- Supabase URL: `https://unvznjnwekrjobwfxhwn.supabase.co`. RLS is ENABLED but its policies are BROKEN for this app.
+- SSH: `sshpass -p 'Zimal@4541452' ssh -o StrictHostKeyChecking=no -p 65002 u341753014@194.163.35.244`
+  (sshpass installed locally for automation.)
+- Deploy backend changes:
+  1. `cd backend && npx tsc` (must be clean — a crash on boot = 503)
+  2. `rsync -az --delete -e "sshpass -p ZIMAL... ssh -o StrictHostKeyChecking=no -p 65002" dist/ u341753014@194.163.35.244:domains/lightgreen-rhinoceros-358548.hostingersite.com/hbuilds/current/nodejs/dist/`
+  3. Restart: `echo "restart $(date -u +%H:%M:%S)" > tmp/restart.txt` over SSH (Passenger picks it up after a polling delay). A single request (e.g. curl /health) also forces a spawn if the app is down.
+  4. Watch logs: `tail -f .../hbuilds/current/nodejs/console.log`
+- IMPORTANT deploy gotcha: do NOT use lftp `mirror --only-newer` to restore old dist — it produces an inconsistent mix of file versions that crashes on boot (e.g. `getAdminClient is not a function`). Always deploy the FULL consistent dist via rsync --delete.
+
+## RLS / Supabase client — IMPORTANT architectural decision
+- The DB RLS policies (`003_rls_policies.sql` / `010_fix_rls_policies.sql`) are non-functional for this app:
+  - `users_select_own` calls `get_current_user_role()` which `SELECT`s from `users` → triggers the same policy → infinite recursion (PostgreSQL 42P17).
+  - The helper functions read `current_setting('app.current_email'/'app.current_uid')` GUCs that the app NEVER sets (it uses supabase-js, not DB session settings).
+- Authorization is enforced in the Express/JWT layer (per-route `authorize('admin','staff')` guards), NOT via Postgres RLS. RLS therefore provides no real protection and only breaks queries when the anon key is used.
+- `src/database/client.ts`: the DEFAULT supabase client (`getSupabaseClient`) uses the SERVICE_ROLE key (falls back to anon only if missing). `getAdminClient()` returns the same client. This restores the original working behavior (one service_role client) and fixes every "empty list" / "login 500" / "42P17 recursion" error. Do NOT switch the default client back to the anon key without first fixing/disabling RLS in the DB.
+- Email transporter: nodemailer SMTP returns 535 (Invalid login) — the Gmail app-password in env is placeholder. NON-CRITICAL (only affects password-reset OTP). Not blocking.
+
+## New Connection section — fixes (commit 616eefb)
+- `GET /api/new-customers` = list (root). Deployed Firebase frontend builds call `/api/new-customers/all`, which previously matched `/:id` (id="all") → PostgreSQL `invalid input syntax for type uuid: "all"` (22P02) → 500 "Failed to fetch new customer". Added `GET /api/new-customers/all` as an alias (same handler) for backward compat.
+- `newCustomers.ts` list uses a LEFT join (default, no `!inner`) on `customers → connections` so legacy customers without a linked connection still appear (inner join returned 0). The flattened row `id = connection.id || customer.id`.
+- `DELETE /api/new-customers/:id` now removes BOTH the connection (matched by connection id OR by customer_id) AND the underlying customer + its connection_expenses. Previously it only deleted from `connections` by id, so: (a) when the row id was a customer id (orphan), the delete was a no-op that still returned success; (b) it left orphaned customer rows. Verified create→delete round-trip removes both records.
+- Frontend page routes vs API paths: `/new-customers/*` are REACT ROUTER page routes. The API calls go through `frontend/src/services/api.ts` `newCustomersApi.getAll()` → `/api/new-customers`. Older deployed builds call `/api/new-customers/all`; the backend alias covers both.
+- Tested live: login OK; /api/new-customers/all returns 10 rows (ali, Hmaza, FAISAL 3, FAISAL, ZOHAIR, muzzam, zohair, WAQAS, HASEEB AHMAD, AWAIS AHMAD); Customer Expenses + Collections pages render; Add New Connection create (`POST /api/connections`) works.
