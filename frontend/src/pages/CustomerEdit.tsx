@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { customersApi } from '../services/api';
+import { useDropdownData } from '../hooks/useDropdownData';
 
 interface Customer {
   id: string;
@@ -69,15 +70,9 @@ export default function CustomerEdit() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-
-  const packagePrices: Record<string, number> = {
-    '5 Mbps': 500,
-    '10 Mbps': 1000,
-    '20 Mbps': 1500,
-    '30 Mbps': 2000,
-    '50 Mbps': 3000,
-    '100 Mbps': 5000
-  };
+  const { areas, packages, loading: optionsLoading, warning: optionsWarning } = useDropdownData();
+  const packagePriceMap: Record<string, number> = {};
+  packages.forEach((p) => { packagePriceMap[p.speed] = p.price; });
 
   useEffect(() => {
     loadCustomerData();
@@ -187,11 +182,11 @@ export default function CustomerEdit() {
 
     // Auto-populate monthly fee when package is selected
     if (name === 'package' && typeof value === 'string' && value) {
-      const price = packagePrices[value as keyof typeof packagePrices];
+      const price = packagePriceMap[value];
       setFormData(prev => ({
         ...prev,
         package: value,
-        fee: price || 0
+        fee: price != null ? price : prev.fee
       }));
     }
   };
@@ -219,6 +214,11 @@ export default function CustomerEdit() {
         {error && (
           <div className="p-3 bg-[#F5514B]/10 border border-[#F5514B] rounded-lg text-[#F5514B] text-sm">
             {error}
+          </div>
+        )}
+        {optionsWarning && !error && (
+          <div className="p-3 bg-amber-500/10 border border-amber-500 rounded-lg text-amber-400 text-sm">
+            {optionsWarning}
           </div>
         )}
       </div>
@@ -326,14 +326,27 @@ export default function CustomerEdit() {
                 onChange={handleChange}
                 className="w-full px-4 py-2 bg-[#1B2540] border border-[#232D45] rounded-lg text-[#EAF0FB] focus:outline-none focus:border-[#14E8B4]"
                 required
+                disabled={optionsLoading}
               >
-                <option value="">Select Package</option>
-                <option value="5 Mbps">5 Mbps - Rs. 500/month</option>
-                <option value="10 Mbps">10 Mbps - Rs. 1000/month</option>
-                <option value="20 Mbps">20 Mbps - Rs. 1500/month</option>
-                <option value="30 Mbps">30 Mbps - Rs. 2000/month</option>
-                <option value="50 Mbps">50 Mbps - Rs. 3000/month</option>
-                <option value="100 Mbps">100 Mbps - Rs. 5000/month</option>
+                <option value="">{optionsLoading ? 'Loading packages…' : 'Select Package'}</option>
+                {(() => {
+                  const speeds = packages.map((p) => p.speed || p.name);
+                  const current = formData.package;
+                  const showCurrentFallback = current && !speeds.includes(current);
+                  return (
+                    <>
+                      {showCurrentFallback && <option value={current}>{current} (current)</option>}
+                      {packages.map((p) => {
+                        const speed = p.speed || p.name;
+                        return (
+                          <option key={p.id || speed} value={speed}>
+                            {p.name && p.name !== speed ? `${p.name} — ` : ''}{speed} — Rs. {p.price}/month
+                          </option>
+                        );
+                      })}
+                    </>
+                  );
+                })()}
               </select>
             </div>
             <div>
@@ -344,14 +357,22 @@ export default function CustomerEdit() {
                 onChange={handleChange}
                 className="w-full px-4 py-2 bg-[#1B2540] border border-[#232D45] rounded-lg text-[#EAF0FB] focus:outline-none focus:border-[#14E8B4]"
                 required
+                disabled={optionsLoading}
               >
-                <option value="">Select Area</option>
-                <option value="Sector A">Sector A</option>
-                <option value="Sector B">Sector B</option>
-                <option value="Sector C">Sector C</option>
-                <option value="Sector D">Sector D</option>
-                <option value="Sector E">Sector E</option>
-                <option value="Sector F">Sector F</option>
+                <option value="">{optionsLoading ? 'Loading areas…' : 'Select Area'}</option>
+                {(() => {
+                  const lowered = areas.map((a) => a.toLowerCase());
+                  const current = formData.area;
+                  const showCurrentFallback = current && !lowered.includes(current.toLowerCase());
+                  return (
+                    <>
+                      {showCurrentFallback && <option value={current}>{current} (current)</option>}
+                      {areas.map((a) => (
+                        <option key={a} value={a}>{a}</option>
+                      ))}
+                    </>
+                  );
+                })()}
               </select>
             </div>
             <div>
