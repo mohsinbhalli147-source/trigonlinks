@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
-import { newCustomersApi } from '../services/api';
+import { connectionsApi, newCustomersApi } from '../services/api';
 
 interface Expense {
   id: string;
@@ -13,6 +13,7 @@ interface Expense {
   amount: number;
   date: number;
   created_at: number;
+  __synthetic?: boolean;
 }
 
 export default function NewCustomersExpenses() {
@@ -29,12 +30,42 @@ export default function NewCustomersExpenses() {
   const loadExpenses = async () => {
     setLoading(true);
     setError('');
+
+    // 1) Try the dedicated expenses endpoint first.
     const result = await newCustomersApi.getExpenses();
-    if (result.success) {
-      setExpenses(result.data?.data || result.data || []);
-    } else {
-      setError(result.error || 'Unable to load expenses.');
+    let rows: Expense[] = result.success
+      ? (result.data?.data || result.data || [])
+      : [];
+
+    // 2) Fallback: the relational connection_expenses table is empty for
+    // legacy data, so if the endpoint returned nothing, flatten the
+    // JSONB `expenses` array embedded on each connection record instead.
+    if (rows.length === 0) {
+      const connRes = await connectionsApi.getAll({ limit: 500 });
+      if (connRes.success) {
+        const data = connRes.data;
+        const conns = Array.isArray(data) ? data : (data?.data || []);
+        rows = conns.flatMap((conn: any) => {
+          const arr = Array.isArray(conn.expenses) ? conn.expenses : [];
+          return arr.map((exp: any, idx: number) => ({
+            id: `${conn.id}-${idx}`,
+            customer_id: conn.id,
+            name: conn.customerName || conn.customer_name || '',
+            title: exp.category || exp.title || '',
+            category: exp.category || '',
+            description: exp.description || '',
+            amount: Number(exp.amount) || 0,
+            date: conn.createdAt || conn.created_at || Date.now(),
+            created_at: conn.createdAt || conn.created_at || Date.now(),
+            __synthetic: true,
+          }));
+        });
+      } else if (!result.success) {
+        setError(connRes.error || 'Unable to load expenses.');
+      }
     }
+
+    setExpenses(rows);
     setLoading(false);
   };
 
@@ -43,12 +74,16 @@ export default function NewCustomersExpenses() {
            (expense.description?.toLowerCase() || '').includes(searchTerm.toLowerCase());
   });
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (expense: Expense) => {
+    if (expense.__synthetic) {
+      alert('This expense is managed on its connection. Edit it from the Approved Connections page.');
+      return;
+    }
     if (!confirm('Are you sure you want to delete this expense?')) return;
 
     try {
-      await newCustomersApi.deleteExpense(id);
-      setExpenses((prev) => prev.filter(e => e.id !== id));
+      await newCustomersApi.deleteExpense(expense.id);
+      setExpenses((prev) => prev.filter(e => e.id !== expense.id));
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Unable to delete expense.');
     }
@@ -132,12 +167,17 @@ export default function NewCustomersExpenses() {
                   <td className="py-3 px-4 text-sm text-[#EAF0FB]">Rs. {expense.amount.toLocaleString()}</td>
                   <td className="py-3 px-4 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <button className="p-2 text-[#8996AD] hover:text-[#EAF0FB] hover:bg-[#232D45] rounded-lg transition-colors">
+                      <button
+                        onClick={() => expense.__synthetic && expense.customer_id ? navigate(`/connections/${expense.customer_id}`) : undefined}
+                        className="p-2 text-[#8996AD] hover:text-[#EAF0FB] hover:bg-[#232D45] rounded-lg transition-colors"
+                        title={expense.__synthetic ? 'View connection' : 'Edit expense'}
+                      >
                         <Edit className="w-4 h-4" />
                       </button>
-                      <button 
-                        onClick={() => handleDelete(expense.id)}
+                      <button
+                        onClick={() => handleDelete(expense)}
                         className="p-2 text-[#8996AD] hover:text-[#F5514B] hover:bg-[#232D45] rounded-lg transition-colors"
+                        title={expense.__synthetic ? 'Managed on connection' : 'Delete expense'}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
