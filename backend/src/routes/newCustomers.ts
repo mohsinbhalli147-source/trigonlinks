@@ -28,12 +28,16 @@ router.get('/', authorize('admin', 'staff'), async (req, res) => {
     const limitNum = parseInt(limit as string, 10) || 10;
     const offset = (pageNum - 1) * limitNum;
 
-    // Query customers table, joining with connections to get connection details
+    // Query customers table, joining with connections to get connection details.
+    // Use a LEFT join (default, no !inner) so customers without a linked
+    // connection record are still shown — legacy data created before the
+    // create-customer-then-link flow has null customer_id on the connection
+    // side, which an inner join would silently drop (returned 0 results).
     let query = supabase
       .from('customers')
       .select(`
         *,
-        connections!inner(id, status, installation_date, package, area, phone, created_at)
+        connections(id, status, installation_date, package, area, phone, created_at)
       `, { count: 'exact' });
 
     // Filter by customer status (inactive by default for new customers, or all if not specified)
