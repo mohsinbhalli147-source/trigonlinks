@@ -101,6 +101,18 @@ api.interceptors.response.use(
   }
 );
 
+// Extract a human-readable error message from an axios error response.
+// Handles both { error: "..." } and express-validator { errors: [...] } shapes.
+function extractErrorMessage(error: any): string {
+  const data = error?.response?.data;
+  if (data?.error) return data.error;
+  if (Array.isArray(data?.errors) && data.errors.length > 0) {
+    return data.errors.map((e: any) => e?.msg || JSON.stringify(e)).join('; ');
+  }
+  if (typeof data?.message === 'string') return data.message;
+  return error?.message || 'Request failed';
+}
+
 // Generic API methods
 export const apiService = {
   get: async (url: string, params?: any) => {
@@ -108,7 +120,7 @@ export const apiService = {
       const response = await api.get(url, { params });
       return { success: true, data: response.data };
     } catch (error: any) {
-      return { success: false, error: error.response?.data?.error || error.message };
+      return { success: false, error: extractErrorMessage(error) };
     }
   },
 
@@ -117,7 +129,7 @@ export const apiService = {
       const response = await api.post(url, data);
       return { success: true, data: response.data };
     } catch (error: any) {
-      return { success: false, error: error.response?.data?.error || error.message };
+      return { success: false, error: extractErrorMessage(error) };
     }
   },
 
@@ -126,7 +138,7 @@ export const apiService = {
       const response = await api.put(url, data);
       return { success: true, data: response.data };
     } catch (error: any) {
-      return { success: false, error: error.response?.data?.error || error.message };
+      return { success: false, error: extractErrorMessage(error) };
     }
   },
 
@@ -135,7 +147,7 @@ export const apiService = {
       const response = await api.delete(url);
       return { success: true, data: response.data };
     } catch (error: any) {
-      return { success: false, error: error.response?.data?.error || error.message };
+      return { success: false, error: extractErrorMessage(error) };
     }
   },
 };

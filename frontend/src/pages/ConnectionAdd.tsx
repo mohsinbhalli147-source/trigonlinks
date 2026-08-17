@@ -77,22 +77,67 @@ export default function ConnectionAdd() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
 
+    // Client-side validation
+    const missing: string[] = [];
+    if (!formData.name.trim()) missing.push('Full Name');
+    if (!formData.phone.trim()) missing.push('Phone Number');
+    if (!formData.cnic.trim()) missing.push('CNIC');
+    if (!formData.address.trim()) missing.push('Address');
+    if (!formData.area) missing.push('Area');
+    if (!formData.package) missing.push('Package');
+    if (!formData.installationDate) missing.push('Installation Date');
+    if (!formData.billingDate) missing.push('Billing Date');
+    if (!formData.connectionFee) missing.push('Connection Fee');
+    if (!formData.monthlyFee) missing.push('Monthly Fee');
+
+    if (missing.length > 0) {
+      setError(`Please fill in all required fields: ${missing.join(', ')}`);
+      return;
+    }
+
+    // Phone format check (at least 7 digits)
+    const phoneDigits = formData.phone.replace(/\D/g, '');
+    if (phoneDigits.length < 7) {
+      setError('Phone Number must be at least 7 digits.');
+      return;
+    }
+
+    // CNIC format check (13 digits, with or without dashes)
+    const cnicDigits = formData.cnic.replace(/\D/g, '');
+    if (cnicDigits.length !== 13) {
+      setError('CNIC must be exactly 13 digits (e.g. 35202-1234567-1).');
+      return;
+    }
+
+    // Numeric fee checks
+    const connFee = Number(formData.connectionFee);
+    const monFee = Number(formData.monthlyFee);
+    if (isNaN(connFee) || connFee < 0) {
+      setError('Connection Fee must be a valid non-negative number.');
+      return;
+    }
+    if (isNaN(monFee) || monFee < 0) {
+      setError('Monthly Fee must be a valid non-negative number.');
+      return;
+    }
+
+    setLoading(true);
+
     const connectionData = {
-      name: formData.name,
-      fatherName: formData.fatherName,
-      phone: formData.phone,
-      cnic: formData.cnic,
-      address: formData.address,
+      name: formData.name.trim(),
+      fatherName: formData.fatherName.trim(),
+      phone: formData.phone.trim(),
+      cnic: formData.cnic.trim(),
+      address: formData.address.trim(),
       area: formData.area,
       package: formData.package,
       installationDate: formData.installationDate,
       billingDate: formData.billingDate,
-      connectionFee: Number(formData.connectionFee),
-      monthlyFee: Number(formData.monthlyFee),
-      concession: Number(formData.concession),
+      connectionFee: connFee,
+      monthlyFee: monFee,
+      concession: Number(formData.concession) || 0,
       concessionReason: formData.concessionReason,
       usedItems: usedItems.map(item => ({
         itemId: item.itemId,
@@ -112,7 +157,8 @@ export default function ConnectionAdd() {
     if (result.success) {
       navigate('/connections/pending');
     } else {
-      setError(result.error || 'Failed to submit connection request');
+      // Backend validation returns { errors: [...] }; surface a clear message
+      setError(result.error || 'Failed to submit connection request. Please check all fields.');
       setLoading(false);
     }
   };
