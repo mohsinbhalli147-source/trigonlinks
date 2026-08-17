@@ -109,3 +109,51 @@ export const formatErrorResponse = (error: unknown, fallbackMessage = "Internal 
   }
   return fallbackMessage;
 };
+
+/**
+ * Map a Supabase/PostgreSQL error to a meaningful HTTP {status, message}.
+ * Supabase-js surfaces PG errors as {code, message, details, hint}.
+ * Returns null when the error isn't a recognized PG error so callers can
+ * fall back to a generic 500.
+ */
+export const pgErrorToResponse = (
+  error: unknown
+): { status: number; message: string } | null => {
+  const e = error as any;
+  const code = e?.code || e?.pgError?.code;
+  const message: string = e?.message || "";
+  const details: string = e?.details || "";
+
+  if (!code) return null;
+
+  const keyMatch = details.match(/Key \(([^)]+)\)=\(([^)]+)\) already exists/);
+  const fieldLabel = (col: string) =>
+    col.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+  switch (code) {
+    case "23505": {
+      if (keyMatch) {
+        const [, col, val] = keyMatch;
+        return {
+          status: 409,
+          message: `${fieldLabel(col)} "${val}" is already taken. Please use a different ${fieldLabel(col).toLowerCase()}.`,
+        };
+      }
+      return { status: 409, message: "A record with this value already exists." };
+    }
+    case "23502": {
+      const colMatch = message.match(/column "([^"]+)"/);
+      const col = colMatch ? colMatch[1] : "a required field";
+      return { status: 400, message: `Missing value for required field: ${fieldLabel(col)}.` };
+    }
+    case "23514":
+      return { status: 400, message: "Value violates a database check constraint (e.g., invalid status or negative amount)." };
+    case "23503":
+      return { status: 400, message: "Referenced record does not exist (foreign key violation)." };
+    case "22P02":
+    case "22P05":
+      return { status: 400, message: "Invalid input format. Please check numeric/UUID fields." };
+    default:
+      return null;
+  }
+};

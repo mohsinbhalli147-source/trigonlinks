@@ -8,7 +8,7 @@ import { googleContactsService } from '../services/google-contacts';
 import { getSupabaseClient } from '../database/client';
 import crypto from 'crypto';
 import { convertObjectKeysToSnake, convertObjectKeysToCamel } from '../utils/fieldConverter';
-import { formatErrorResponse } from '../middleware/security';
+import { formatErrorResponse, pgErrorToResponse } from '../middleware/security';
 
 const router = express.Router();
 const customersRepo = new CustomersRepository();
@@ -190,6 +190,9 @@ router.post('/', authorize('admin'), [
     
     res.json(customerCamel);
   } catch (error) {
+    logger.error('Create customer error:', error);
+    const pg = pgErrorToResponse(error);
+    if (pg) return res.status(pg.status).json({ error: pg.message });
     res.status(500).json({ error: 'Failed to create customer' });
   }
 });
@@ -266,6 +269,8 @@ router.put('/:id', authorize('admin'), async (req: AuthRequest, res) => {
     res.json(customerCamel);
   } catch (error) {
     logger.error('Update customer error:', error);
+    const pg = pgErrorToResponse(error);
+    if (pg) return res.status(pg.status).json({ error: pg.message });
     res.status(500).json({ error: 'Failed to update customer' });
   }
 });
@@ -302,6 +307,9 @@ router.delete('/:id', authorize('admin'), async (req: AuthRequest, res) => {
     
     res.json({ message: 'Customer deleted successfully' });
   } catch (error) {
+    logger.error('Delete customer error:', error);
+    const pg = pgErrorToResponse(error);
+    if (pg) return res.status(pg.status).json({ error: pg.message });
     res.status(500).json({ error: 'Failed to delete customer' });
   }
 });
